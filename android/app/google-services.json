@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "302569543037",
+    "project_id": "flutter-pwd-container",
+    "storage_bucket": "flutter-pwd-container.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:302569543037:android:a1dee80b16f2c7bc2e6814",
+        "android_client_info": {
+          "package_name": "com.example.flutter_pwd_container"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "302569543037-4dqvbcbnfqj93kdqj7ii571kub4q1sl2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHK84URQzDlb7jgTnDCwqwblLYHG5aiN8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "302569543037-4dqvbcbnfqj93kdqj7ii571kub4q1sl2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

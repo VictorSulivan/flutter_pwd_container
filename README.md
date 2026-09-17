@@ -16,3 +16,9 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 # flutter_pwd_container
+
+https://firebase.google.com/docs/auth/flutter/start?hl=fr
+
+https://pub.dev/packages/firebase_ai
+
+https://firebase.google.com/docs/ai-logic/get-started?hl=fr&api=dev
