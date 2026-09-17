@@ -67,13 +67,15 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 
 `vaultExistsProvider` : le coffre a-t-il déjà une enveloppe pour cet `uid` (fichier local **ou** Firestore) ? Sert à choisir « Créer » vs « Déverrouiller ».
 
-`encryptedBlobStoreProvider` : `SyncingEncryptedBlobStore` (fichier + `FirestoreVaultRemoteStore`). Les tests injectent un remote mémoire.
+`encryptedBlobStoreProvider` : fichier local `vault_<uid>.enc`.
+
+`vaultRemoteStoreProvider` : Firestore `users/{uid}/enveloppe` + `fiches`.
 
 `AsyncNotifier<List<VaultEntry>>`. Sans mot de passe maître : liste vide. `create` / `unlock` chargent les fiches. Logout → `lock()`.
 
 Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
 
-`vaultEntriesProvider.notifier.syncRemote()` : bouton **Synchroniser** — last-write-wins local ↔ Firestore, puis recharge la liste.
+`vaultEntriesProvider.notifier.syncRemote()` : bouton **Synchroniser**.
 
 `vaultSyncErrorProvider` : dernière erreur de copie cloud, affichée en bandeau (le coffre local continue).
 

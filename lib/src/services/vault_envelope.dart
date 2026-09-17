@@ -34,14 +34,16 @@ class VaultEnvelope {
   factory VaultEnvelope.fromJson(Map<String, dynamic> decoded) {
     final updatedAtRaw = decoded['updatedAt'] as String?;
     final encrypted = decoded['encryptedEntries'] as String? ??
-        decoded['ciphertext'] as String;
+        decoded['ciphertext'] as String?;
     return VaultEnvelope(
       version: decoded['v'] as int,
       kdf: decoded['kdf'] as String,
       iterations: (decoded['iterations'] as num).toInt(),
       salt: base64Decode(decoded['salt'] as String),
       wrappedDek: base64Decode(decoded['wrappedDek'] as String),
-      ciphertext: base64Decode(encrypted),
+      ciphertext: encrypted == null
+          ? Uint8List(0)
+          : base64Decode(encrypted),
       updatedAt: updatedAtRaw == null
           ? unknownUpdatedAt
           : DateTime.parse(updatedAtRaw).toUtc(),
@@ -50,6 +52,18 @@ class VaultEnvelope {
 
   factory VaultEnvelope.fromFirestoreMap(Map<String, dynamic> data) {
     return VaultEnvelope.fromJson(data);
+  }
+
+  VaultEnvelope copyWith({Uint8List? ciphertext, DateTime? updatedAt}) {
+    return VaultEnvelope(
+      version: version,
+      kdf: kdf,
+      iterations: iterations,
+      salt: salt,
+      wrappedDek: wrappedDek,
+      ciphertext: ciphertext ?? this.ciphertext,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -68,14 +82,14 @@ class VaultEnvelope {
     return Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
   }
 
-  Map<String, dynamic> toFirestoreMap() {
+  /// Meta du coffre (pas les fiches). Le maître n’est jamais dedans.
+  Map<String, dynamic> toFirestoreMetaMap() {
     return {
       'v': version,
       'kdf': kdf,
       'iterations': iterations,
       'salt': base64Encode(salt),
       'wrappedDek': base64Encode(wrappedDek),
-      'encryptedEntries': base64Encode(ciphertext),
       'updatedAt': updatedAt.toUtc().toIso8601String(),
     };
   }

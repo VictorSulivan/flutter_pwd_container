@@ -5,32 +5,32 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    function vaultFields() {
-      return request.resource.data.keys().hasOnly([
-        'v',
-        'kdf',
-        'iterations',
-        'salt',
-        'wrappedDek',
-        'encryptedEntries',
-        'updatedAt'
-      ]);
+    // Un nœud par compte Auth. Pas de secret ici.
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['kind']);
     }
 
-    // Fiches du coffre, déjà chiffrées. Pas le compte Google, pas le maître.
-    match /coffres/{userId}/contenu/{document} {
+    // Un coffre par user : sel + clé AES enveloppée. Pas le mot de passe maître.
+    match /users/{userId}/enveloppe/{document} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && vaultFields();
+      allow write: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'v',
+          'kdf',
+          'iterations',
+          'salt',
+          'wrappedDek',
+          'updatedAt'
+        ]);
     }
 
-    match /vaults/{userId} {
+    // X fiches (sites / apps), chacune déjà chiffrée.
+    match /users/{userId}/fiches/{ficheId} {
       allow read: if isOwner(userId);
-      allow write: if false;
-    }
-
-    match /users/{userId}/vault/{document} {
-      allow read: if isOwner(userId);
-      allow write: if false;
+      allow write: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['ciphertext', 'updatedAt']);
     }
 
     match /{document=**} {

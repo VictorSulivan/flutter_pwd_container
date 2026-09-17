@@ -28,9 +28,9 @@ Fichier JSON (les champs sensibles sont déjà chiffrés) :
 | `ciphertext` | Liste des fiches chiffrée AES-256-GCM |
 | `updatedAt` | Horodatage UTC pour le sync |
 
-Même forme, côté cloud : `coffres/{uid}/contenu/actuel` (`encryptedEntries` = fiches chiffrées). Détail : [`firebase-sync.md`](firebase-sync.md).
+Même forme, côté cloud : `users/{uid}/enveloppe/actuelle` + `users/{uid}/fiches/{id}`. Détail : [`firebase-sync.md`](firebase-sync.md).
 
-`SyncingEncryptedBlobStore` tient le fichier et Firestore alignés. Hors-ligne, le fichier local suffit. Sur un nouvel appareil, `exists` / `unlock` tirent d’abord le document distant.
+Le fichier local reste `vault_<uid>.enc`. Firestore : 1 enveloppe (pas le maître) et X fiches chiffrées. Hors-ligne, le fichier local suffit. Sur un nouvel appareil, `unlock` tire enveloppe + fiches.
 
 ## API
 
@@ -38,7 +38,7 @@ Même forme, côté cloud : `coffres/{uid}/contenu/actuel` (`encryptedEntries` =
 - `unlock(uid, maître)` — déverrouille
 - `lock()` — oublie la DEK en RAM
 - `load` / `upsert` / `delete` — exigent un coffre déverrouillé
-- `syncBothWays` — last-write-wins entre le fichier local et Firestore, puis relit les fiches
+- `syncBothWays` — last-write-wins entre le fichier local et `users/{uid}` (enveloppe + fiches)
 
 `vaultEntriesProvider` : sans maître → liste vide (verrouillé). Logout → `lock()`.
 

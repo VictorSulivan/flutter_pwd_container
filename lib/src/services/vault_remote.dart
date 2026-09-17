@@ -1,80 +1,145 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import 'vault_envelope.dart';
 
-abstract class VaultRemoteStore {
-  Future<VaultEnvelope?> read(String userId);
+class EncryptedFiche {
+  const EncryptedFiche({
+    required this.id,
+    required this.ciphertext,
+    required this.updatedAt,
+  });
 
-  Future<void> write(String userId, VaultEnvelope envelope);
-}
+  final String id;
+  final Uint8List ciphertext;
+  final DateTime updatedAt;
 
-class MemoryVaultRemoteStore implements VaultRemoteStore {
-  MemoryVaultRemoteStore([Map<String, VaultEnvelope>? envelopes])
-    : _envelopes = envelopes ?? {};
+  Map<String, dynamic> toFirestoreMap() {
+    return {
+      'ciphertext': base64Encode(ciphertext),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
+    };
+  }
 
-  final Map<String, VaultEnvelope> _envelopes;
-
-  @override
-  Future<VaultEnvelope?> read(String userId) async => _envelopes[userId];
-
-  @override
-  Future<void> write(String userId, VaultEnvelope envelope) async {
-    _envelopes[userId] = envelope;
+  factory EncryptedFiche.fromFirestore(
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    return EncryptedFiche(
+      id: id,
+      ciphertext: base64Decode(data['ciphertext'] as String),
+      updatedAt: DateTime.parse(data['updatedAt'] as String).toUtc(),
+    );
   }
 }
 
+class RemoteVault {
+  const RemoteVault({
+    required this.envelope,
+    required this.fiches,
+  });
+
+  final VaultEnvelope envelope;
+  final List<EncryptedFiche> fiches;
+}
+
+abstract class VaultRemoteStore {
+  Future<RemoteVault?> read(String userId);
+
+  Future<void> write(String userId, RemoteVault vault);
+}
+
+class MemoryVaultRemoteStore implements VaultRemoteStore {
+  MemoryVaultRemoteStore([Map<String, RemoteVault>? vaults])
+    : _vaults = vaults ?? {};
+
+  final Map<String, RemoteVault> _vaults;
+
+  @override
+  Future<RemoteVault?> read(String userId) async => _vaults[userId];
+
+  @override
+  Future<void> write(String userId, RemoteVault vault) async {
+    _vaults[userId] = vault;
+  }
+}
+
+/// Firestore :
+/// users/{uid}                  nœud compte (pas de secret)
+/// users/{uid}/enveloppe/actuelle   1 coffre (clé enveloppée)
+/// users/{uid}/fiches/{id}          X mots de passe de sites, chiffrés
 class FirestoreVaultRemoteStore implements VaultRemoteStore {
   FirestoreVaultRemoteStore([FirebaseFirestore? firestore])
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
-  static const collection = 'coffres';
-  static const contents = 'contenu';
-  static const documentId = 'actuel';
-
-  DocumentReference<Map<String, dynamic>> _doc(String userId) {
-    return _firestore
-        .collection(collection)
-        .doc(userId)
-        .collection(contents)
-        .doc(documentId);
+  DocumentReference<Map<String, dynamic>> _user(String userId) {
+    return _firestore.collection('users').doc(userId);
   }
 
-  List<DocumentReference<Map<String, dynamic>>> _legacyDocs(String userId) {
-    return [
-      _firestore.collection('vaults').doc(userId),
-      _firestore.collection('users').doc(userId).collection('vault').doc('current'),
-    ];
+  DocumentReference<Map<String, dynamic>> _enveloppe(String userId) {
+    return _user(userId).collection('enveloppe').doc('actuelle');
+  }
+
+  CollectionReference<Map<String, dynamic>> _fiches(String userId) {
+    return _user(userId).collection('fiches');
   }
 
   @override
-  Future<VaultEnvelope?> read(String userId) async {
+  Future<RemoteVault?> read(String userId) async {
     try {
-      final snapshot = await _doc(userId).get(
+      final meta = await _enveloppe(userId).get(
         const GetOptions(source: Source.server),
       );
-      final data = snapshot.data();
-      if (snapshot.exists && data != null && data.isNotEmpty) {
-        return VaultEnvelope.fromFirestoreMap(data);
+      if (meta.exists && meta.data() != null && meta.data()!.isNotEmpty) {
+        final fichesSnap = await _fiches(userId).get(
+          const GetOptions(source: Source.server),
+        );
+        return RemoteVault(
+          envelope: VaultEnvelope.fromFirestoreMap(meta.data()!),
+          fiches: [
+            for (final doc in fichesSnap.docs)
+              if (doc.data().isNotEmpty)
+                EncryptedFiche.fromFirestore(doc.id, doc.data()),
+          ],
+        );
       }
     } on FirebaseException catch (error) {
-      if (error.code != 'permission-denied') {
+      if (error.code != 'permission-denied' && error.code != 'not-found') {
         throw StateError(
-          'coffres/$userId/contenu/actuel ${error.code}: ${error.message}',
+          'users/$userId/enveloppe ${error.code}: ${error.message}',
         );
       }
     }
+    return _readLegacyBlob(userId);
+  }
 
-    for (final legacy in _legacyDocs(userId)) {
+  Future<RemoteVault?> _readLegacyBlob(String userId) async {
+    final legacy = [
+      _firestore
+          .collection('coffres')
+          .doc(userId)
+          .collection('contenu')
+          .doc('actuel'),
+      _firestore.collection('vaults').doc(userId),
+      _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('vault')
+          .doc('current'),
+    ];
+    for (final doc in legacy) {
       try {
-        final snapshot = await legacy.get(
-          const GetOptions(source: Source.server),
-        );
+        final snapshot = await doc.get(const GetOptions(source: Source.server));
         final data = snapshot.data();
         if (snapshot.exists && data != null && data.isNotEmpty) {
-          return VaultEnvelope.fromFirestoreMap(data);
+          return RemoteVault(
+            envelope: VaultEnvelope.fromFirestoreMap(data),
+            fiches: const [],
+          );
         }
       } on FirebaseException {
         continue;
@@ -84,20 +149,41 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
   }
 
   @override
-  Future<void> write(String userId, VaultEnvelope envelope) async {
-    const path = 'coffres/{uid}/contenu/actuel';
-    final doc = _doc(userId);
-    final resolved = 'coffres/$userId/contenu/actuel';
+  Future<void> write(String userId, RemoteVault vault) async {
+    final user = _user(userId);
+    final enveloppe = _enveloppe(userId);
+    final fiches = _fiches(userId);
     try {
-      await doc.set(envelope.toFirestoreMap());
-      await _firestore.waitForPendingWrites();
-      final confirmed = await doc.get(const GetOptions(source: Source.server));
-      if (!confirmed.exists) {
-        throw StateError('Firestore n’a pas confirmé $resolved');
+      final existing = await fiches.get(const GetOptions(source: Source.server));
+      final keep = {for (final fiche in vault.fiches) fiche.id};
+      final batch = _firestore.batch();
+      batch.set(user, const {'kind': 'coffre'});
+      batch.set(enveloppe, vault.envelope.toFirestoreMetaMap());
+      for (final fiche in vault.fiches) {
+        batch.set(fiches.doc(fiche.id), fiche.toFirestoreMap());
       }
-      debugPrint('Firestore wrote $resolved ($path = fiches chiffrées, pas le compte)');
+      for (final doc in existing.docs) {
+        if (!keep.contains(doc.id)) {
+          batch.delete(doc.reference);
+        }
+      }
+      await batch.commit();
+      await _firestore.waitForPendingWrites();
+      final confirmed = await enveloppe.get(
+        const GetOptions(source: Source.server),
+      );
+      if (!confirmed.exists) {
+        throw StateError(
+          'Firestore n’a pas confirmé users/$userId/enveloppe/actuelle',
+        );
+      }
+      debugPrint(
+        'Firestore wrote users/$userId/enveloppe/actuelle + ${vault.fiches.length} fiche(s)',
+      );
     } on FirebaseException catch (error) {
-      throw StateError('$resolved ${error.code}: ${error.message}');
+      throw StateError(
+        'users/$userId ${error.code}: ${error.message}',
+      );
     }
   }
 }

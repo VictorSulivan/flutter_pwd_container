@@ -10,7 +10,7 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 4. **Coffre (données seulement)** — `VaultEntry`, AES-256-GCM, isolation par uid.
 5. **PBKDF2 + enveloppe** — mot de passe maître enveloppe la DEK ; format prêt pour Firestore.
 6. **Écran maître** — `/unlock` : créer ou déverrouiller le coffre après Google.
-7. **Sync Firestore** — copie des fiches chiffrées vers `coffres/{uid}/contenu/actuel`.
+7. **Sync Firestore** — 1 enveloppe + X fiches chiffrées sous `users/{uid}`.
 8. **UI liste** — fiches, recherche, édition, copie 30 s.
 9. **Générateur** — longueur / jeux de caractères, copie 30 s, hors Firebase.
 

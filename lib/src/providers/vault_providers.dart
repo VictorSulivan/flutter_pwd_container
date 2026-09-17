@@ -5,7 +5,6 @@ import '../services/vault_envelope.dart';
 import '../services/vault_remote.dart';
 import '../services/vault_repository.dart';
 import '../services/vault_storage.dart';
-import '../services/vault_sync.dart';
 import 'auth_providers.dart';
 
 final vaultRemoteStoreProvider = Provider<VaultRemoteStore>((ref) {
@@ -13,15 +12,13 @@ final vaultRemoteStoreProvider = Provider<VaultRemoteStore>((ref) {
 });
 
 final encryptedBlobStoreProvider = Provider<EncryptedBlobStore>((ref) {
-  return SyncingEncryptedBlobStore(
-    local: FileEncryptedBlobStore(),
-    remote: ref.watch(vaultRemoteStoreProvider),
-  );
+  return FileEncryptedBlobStore();
 });
 
 final vaultRepositoryProvider = Provider<VaultRepository>((ref) {
   final repository = VaultRepository(
     blobStore: ref.watch(encryptedBlobStoreProvider),
+    remote: ref.watch(vaultRemoteStoreProvider),
   );
   ref.onDispose(repository.lock);
   return repository;
@@ -68,17 +65,14 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   }
 
   void _captureSyncError() {
-    final store = ref.read(encryptedBlobStoreProvider);
-    if (store is SyncingEncryptedBlobStore) {
-      final error = store.lastRemoteError;
-      ref.read(vaultSyncErrorProvider.notifier).setMessage(
-        error == null
-            ? null
-            : error.toString().contains('permission-denied')
-            ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
-            : 'La copie cloud a échoué. Le coffre local est à jour.',
-      );
-    }
+    final error = ref.read(vaultRepositoryProvider).lastRemoteError;
+    ref.read(vaultSyncErrorProvider.notifier).setMessage(
+      error == null
+          ? null
+          : error.toString().contains('permission-denied')
+          ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
+          : 'La copie cloud a échoué. Le coffre local est à jour.',
+    );
   }
 
   Future<void> create(String masterPassword) async {
