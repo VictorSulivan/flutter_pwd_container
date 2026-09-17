@@ -35,7 +35,7 @@ void main() {
 
     expect(find.text('Créer le coffre'), findsWidgets);
     expect(find.text('Mot de passe maître'), findsOneWidget);
-    expect(find.text('Générateur'), findsOneWidget);
+    expect(find.text('Générateur'), findsNothing);
   });
 
   testWidgets('affiche le formulaire de déverrouillage si le coffre existe', (
@@ -53,6 +53,7 @@ void main() {
 
     expect(find.text('Déverrouiller'), findsWidgets);
     expect(find.text('Confirmer'), findsNothing);
+    expect(find.text('Générateur'), findsNothing);
   });
 
   testWidgets('affiche l’état vide du coffre', (tester) async {

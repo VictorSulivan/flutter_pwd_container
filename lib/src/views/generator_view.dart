@@ -65,7 +65,7 @@ class _GeneratorViewState extends State<GeneratorView> {
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'Indépendant du coffre. Rien n’est envoyé à Firebase.',
+                              'Rien n’est envoyé à Firebase.',
                               style: TextStyle(
                                 color: AppColors.muted,
                                 fontSize: 14,

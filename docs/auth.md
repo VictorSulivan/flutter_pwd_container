@@ -55,13 +55,12 @@ Trois routes :
 | `/login` | `LoginView` | uniquement **sans** session |
 | `/unlock` | `UnlockView` | session **et** coffre verrouillé |
 | `/` | `HomeView` | session **et** coffre déverrouillé |
-| `/generator` | `GeneratorView` | session Google, coffre ouvert **ou** fermé |
+| `/generator` | `GeneratorView` | comme `/` |
 | `/entry/new`, `/entry/:id` | `EntryView` | comme `/` |
 
 `redirect` :
 
 - pas connecté → `/login` ;
-- connecté + `/generator` → on reste (le générateur ne lit pas le coffre) ;
 - connecté + coffre verrouillé → `/unlock` ;
 - déverrouillé + encore sur `/unlock` ou `/login` → `/`.
 

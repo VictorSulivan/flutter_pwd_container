@@ -46,10 +46,6 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
       if (!loggedIn) {
         return location == AppRoutes.login ? null : AppRoutes.login;
       }
-      // Le générateur ne lit pas le coffre : accessible dès la session Google.
-      if (location == AppRoutes.generator) {
-        return null;
-      }
       if (!unlocked && location != AppRoutes.unlock) {
         return AppRoutes.unlock;
       }

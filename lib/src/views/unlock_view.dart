@@ -123,7 +123,6 @@ class _UnlockViewState extends ConsumerState<UnlockView> {
                           });
                         },
                         onSubmit: () => _submit(create: !vaultExists),
-                        onGenerator: () => context.go('/generator'),
                         onSignOut: () {
                           ref.read(authRepositoryProvider).signOut();
                         },
@@ -150,7 +149,6 @@ class _UnlockForm extends StatelessWidget {
     required this.error,
     required this.onToggleObscure,
     required this.onSubmit,
-    required this.onGenerator,
     required this.onSignOut,
   });
 
@@ -162,7 +160,6 @@ class _UnlockForm extends StatelessWidget {
   final String? error;
   final VoidCallback onToggleObscure;
   final VoidCallback onSubmit;
-  final VoidCallback onGenerator;
   final VoidCallback onSignOut;
 
   @override
@@ -241,11 +238,6 @@ class _UnlockForm extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        TextButton.icon(
-          onPressed: onGenerator,
-          icon: const Icon(Icons.casino_outlined),
-          label: const Text('Générateur'),
-        ),
         TextButton(
           onPressed: onSignOut,
           child: const Text('Changer de compte Google'),
