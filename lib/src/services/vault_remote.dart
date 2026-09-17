@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import 'vault_envelope.dart';
 
@@ -53,14 +54,18 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
 
   @override
   Future<void> write(String userId, VaultEnvelope envelope) async {
+    final path = 'users/$userId/vault/current';
     final doc = _doc(userId);
-    await doc.set(envelope.toFirestoreMap());
-    await _firestore.waitForPendingWrites();
-    final confirmed = await doc.get(const GetOptions(source: Source.server));
-    if (!confirmed.exists) {
-      throw StateError(
-        'Firestore n’a pas confirmé users/$userId/vault/current',
-      );
+    try {
+      await doc.set(envelope.toFirestoreMap());
+      await _firestore.waitForPendingWrites();
+      final confirmed = await doc.get(const GetOptions(source: Source.server));
+      if (!confirmed.exists) {
+        throw StateError('Firestore n’a pas confirmé $path');
+      }
+      debugPrint('Firestore wrote $path');
+    } on FirebaseException catch (error) {
+      throw StateError('$path ${error.code}: ${error.message}');
     }
   }
 }

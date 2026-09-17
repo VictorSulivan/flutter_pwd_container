@@ -110,11 +110,17 @@ Comportement client (`SyncingEncryptedBlobStore`) :
 
 Le document n’est **pas** à la racine, et le parent `users/{uid}` n’a souvent **pas de champs** (ligne en *italique*).
 
-1. [Firestore](https://console.firebase.google.com/project/flutter-pwd-container/firestore) → base **(default)**.
+**Authentication** (onglet Utilisateurs) = le compte Google. Ce n’est pas le coffre.
+
+**Realtime Database** reste vide : on n’écrit que dans **Cloud Firestore**.
+
+1. [Firestore](https://console.firebase.google.com/project/flutter-pwd-container/firestore) → base **(default)** → onglet **Données**.
 2. Collection `users`.
 3. Document **ton uid** (parfois gris / italique).
 4. Sous-collection `vault`.
 5. Document `current` : `salt`, `wrappedDek`, `ciphertext`, `updatedAt`.
+
+Sans coffre créé (mot de passe maître), Firestore n’a **aucun** document `vault`. Le login Google ne crée que l’utilisateur Auth.
 
 Pas de mot de passe en clair. Realtime Database reste vide (on ne l’utilise pas).
 
