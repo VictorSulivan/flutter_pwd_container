@@ -5,6 +5,7 @@ import 'package:flutter_pwd_container/src/views/entry_view.dart';
 import 'package:flutter_pwd_container/src/views/home_view.dart';
 import 'package:flutter_pwd_container/src/views/login_view.dart';
 import 'package:flutter_pwd_container/src/views/unlock_view.dart';
+import 'package:flutter_pwd_container/src/views/unsupported_linux_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,6 +20,13 @@ void main() {
     );
 
     expect(find.text('Continuer avec Google'), findsOneWidget);
+  });
+
+  testWidgets('explique que Linux desktop n’est pas supporté', (tester) async {
+    await tester.pumpWidget(const UnsupportedLinuxView());
+
+    expect(find.text('Pas sur Linux desktop'), findsOneWidget);
+    expect(find.textContaining('flutter run -d chrome'), findsWidgets);
   });
 
   testWidgets('affiche le formulaire de création du coffre', (tester) async {
