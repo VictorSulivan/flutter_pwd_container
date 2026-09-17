@@ -12,8 +12,6 @@ Sans `options`, Android essaie de lire un `values.xml` généré par `google-ser
 
 `lib/firebase_options.dart` et `android/app/google-services.json` viennent de `flutterfire configure`. On ne les édite pas à la main.
 
-**Linux desktop :** `flutter run` sans `-d` lance Linux. Firebase Auth, Firestore et Google Sign-In n’ont pas de plugin Linux → l’app affiche un écran d’aide. Utiliser `flutter run -d chrome` ou un appareil Android.
-
 ## Google Sign-In
 
 Le plugin `google_sign_in` 7 n’a plus `signIn()`. Le flux mobile est :
