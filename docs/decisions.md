@@ -12,7 +12,7 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 ## D2 — Riverpod n’est pas le stockage du coffre
 
-**Décision :** Riverpod orchestre l’état ; le coffre est un repository + AES-256-GCM / secure storage.
+**Décision :** Riverpod orchestre l’état ; le coffre est un repository + AES-256-GCM + PBKDF2.
 
 **Pourquoi :** un `StateProvider<List<Entry>>` garderait les secrets en RAM sans politique de chiffrement, de purge, ni de cloisonnement par `uid` Firebase. L’auth et le coffre ont des durées de vie différentes (session cloud vs secrets locaux).
 
@@ -46,16 +46,24 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 **Pourquoi :** le Dart couvre toutes les plateformes (surtout le web). Le JSON Android alimente aussi `default_web_client_id` pour Google Sign-In. Les deux sont complémentaires, pas redondants au hasard.
 
+## D10 — Mot de passe maître + PBKDF2, pas la clé AES brute dans Firebase
+
+**Décision :** PBKDF2-HMAC-SHA256 (210k itérations) dérive une KEK. Elle enveloppe la DEK AES. Firestore (plus tard) ne recevra que sel + `wrappedDek` + ciphertext.
+
+**Pourquoi :** le Keystore seul ne suit pas sur un autre téléphone. Google Sign-In ne doit pas suffire à lire le coffre. PBKDF2 est l’algo demandé ; le sel est public, le maître ne sort pas de l’appareil.
+
+**Revoir si :** déverrouillage trop lent sur low-end (monter/baisser les itérations, ou Argon2id).
+
 ## D8 — Développement par petites étapes
 
-Ordre figé : auth Riverpod (fait) → repository coffre chiffré sans UI (fait) → UI coffre → générateur → alertes → biométrie / inactivité → IA zero-knowledge → login e-mail.
+Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe (fait) → Firestore console → UI maître → sync → UI liste.
 
-**Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang » chiffrement + UI + IA.
+**Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang ».
 
-## D9 — AES-256-GCM, clé au Keystore, blob dans un fichier
+## D9 — AES-256-GCM, blob local, clé enveloppée (plus de DEK brute au Keystore)
 
-**Décision :** clé AES par `uid` dans Flutter Secure Storage ; ciphertext dans `vault_<uid>.enc` (répertoire support). GCM pour l’authentification du blob (MAC).
+**Décision :** les fiches sont chiffrées AES-256-GCM. La DEK est enveloppée par PBKDF2 (D10) et stockée dans `vault_<uid>.enc` avec le ciphertext. Plus de clé AES en clair dans Flutter Secure Storage.
 
-**Pourquoi :** Secure Storage a des limites de taille ; un coffre peut grandir. Le Keystore protège la clé, pas besoin d’y mettre tout le JSON. GCM détecte un fichier tronqué ou modifié.
+**Pourquoi :** la même enveloppe pourra être copiée vers Firestore. Une DEK seulement dans le Keystore ne se synchronise pas.
 
-**Revoir si :** web (pas de `dart:io` fichier) : stocker le blob autrement.
+**Revoir si :** web (pas de `dart:io` fichier) : autre blob store.

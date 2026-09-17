@@ -7,16 +7,20 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 1. **Auth Google + Firebase + GoRouter** — session, `/login` et `/`.
 2. **UI login SafeVault** — sans e-mail ni avatar.
 3. **Riverpod sur la session** — `AuthRepository`, `authStateProvider`, `routerProvider`.
-4. **Coffre (données seulement)** — `VaultEntry`, AES-256-GCM, isolation par uid, `vaultEntriesProvider`. Pas d’écran de liste.
+4. **Coffre (données seulement)** — `VaultEntry`, AES-256-GCM, isolation par uid.
+5. **PBKDF2 + enveloppe** — mot de passe maître enveloppe la DEK ; format prêt pour Firestore.
 
-## Suivant
+## Suivant (côté Firebase, à faire dans la console)
 
-3. **UI coffre** — liste / création / édition branchées sur `vaultEntriesProvider`.
-4. **Générateur** — longueur, jeux de caractères, copie, purge presse-papiers à 30 s.
-5. **Alertes** — hash de similarité (pas de clair), obsolescence, faiblesse.
-6. **Verrouillage** — biométrie optionnelle, timeout d’inactivité.
-7. **IA zero-knowledge** — métadonnées anonymisées uniquement, jamais le mot de passe.
-8. **Login e-mail / mot de passe Firebase** — en plus de Google, distinct du mot de passe maître local.
+Voir [`firebase-sync.md`](firebase-sync.md) : créer Firestore en **production**, coller [`firestore.rules`](../firestore.rules).
+
+Puis dans le code :
+
+- écran créer / déverrouiller le coffre (mot de passe maître)
+- sync `cloud_firestore` de l’enveloppe
+- UI liste des fiches
+
+Ensuite : générateur, alertes, biométrie, IA, login e-mail.
 
 ## Hors code pour l’instant
 

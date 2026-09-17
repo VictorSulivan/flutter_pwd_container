@@ -5,19 +5,24 @@ import '../services/vault_repository.dart';
 import '../services/vault_storage.dart';
 import 'auth_providers.dart';
 
-final secureKeyStoreProvider = Provider<SecureKeyStore>((ref) {
-  return FlutterSecureKeyStore();
-});
-
 final encryptedBlobStoreProvider = Provider<EncryptedBlobStore>((ref) {
   return FileEncryptedBlobStore();
 });
 
 final vaultRepositoryProvider = Provider<VaultRepository>((ref) {
-  return VaultRepository(
-    keyStore: ref.watch(secureKeyStoreProvider),
+  final repository = VaultRepository(
     blobStore: ref.watch(encryptedBlobStoreProvider),
   );
+  ref.onDispose(repository.lock);
+  return repository;
+});
+
+final vaultExistsProvider = FutureProvider<bool>((ref) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) {
+    return false;
+  }
+  return ref.watch(vaultRepositoryProvider).exists(user.uid);
 });
 
 final vaultEntriesProvider =
@@ -29,27 +34,54 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   @override
   Future<List<VaultEntry>> build() async {
     final user = await ref.watch(authStateProvider.future);
+    final repository = ref.read(vaultRepositoryProvider);
     if (user == null) {
+      repository.lock();
       return const [];
     }
-    return ref.read(vaultRepositoryProvider).load(user.uid);
+    if (repository.isUnlockedFor(user.uid)) {
+      return repository.load(user.uid);
+    }
+    return const [];
+  }
+
+  Future<void> create(String masterPassword) async {
+    final uid = _requireUid();
+    final repository = ref.read(vaultRepositoryProvider);
+    await repository.create(uid, masterPassword);
+    state = AsyncData(await repository.load(uid));
+    ref.invalidate(vaultExistsProvider);
+  }
+
+  Future<void> unlock(String masterPassword) async {
+    final uid = _requireUid();
+    final repository = ref.read(vaultRepositoryProvider);
+    await repository.unlock(uid, masterPassword);
+    state = AsyncData(await repository.load(uid));
+  }
+
+  Future<void> lock() async {
+    ref.read(vaultRepositoryProvider).lock();
+    state = const AsyncData([]);
   }
 
   Future<void> upsert(VaultEntry entry) async {
-    final uid = ref.read(authRepositoryProvider).currentUser?.uid;
-    if (uid == null) {
-      throw StateError('Aucun utilisateur connecté.');
-    }
+    final uid = _requireUid();
     final next = await ref.read(vaultRepositoryProvider).upsert(uid, entry);
     state = AsyncData(next);
   }
 
   Future<void> delete(String id) async {
+    final uid = _requireUid();
+    final next = await ref.read(vaultRepositoryProvider).delete(uid, id);
+    state = AsyncData(next);
+  }
+
+  String _requireUid() {
     final uid = ref.read(authRepositoryProvider).currentUser?.uid;
     if (uid == null) {
       throw StateError('Aucun utilisateur connecté.');
     }
-    final next = await ref.read(vaultRepositoryProvider).delete(uid, id);
-    state = AsyncData(next);
+    return uid;
   }
 }

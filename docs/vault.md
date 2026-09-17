@@ -1,56 +1,43 @@
 # Coffre chiffré (données)
 
-Étape actuelle : le coffre existe **en données**, pas encore d’écran de liste. Les widgets n’appellent pas Firebase pour les secrets.
+Les secrets ne vont **pas** dans Firebase Auth. Ils sont chiffrés **avant** toute éventuelle copie distante.
 
-## Ce qui est stocké
+## Mot de passe maître + PBKDF2
 
-Une fiche [`VaultEntry`](../lib/src/models/vault_entry.dart) :
+Le compte Google dit **qui** tu es. Le mot de passe maître dit **qui peut lire le coffre**.
 
-- `id` (UUID)
-- `serviceName`, `url` optionnelle, `username`
-- `password` (clair **uniquement en mémoire** après déchiffrement)
-- `createdAt` / `updatedAt` (UTC)
+1. Sel aléatoire (16 octets), stocké en clair dans l’enveloppe (ce n’est pas un secret).
+2. **PBKDF2-HMAC-SHA256**, 210 000 itérations → clé d’enveloppe (KEK).
+3. Une clé AES-256 (DEK) chiffre les fiches.
+4. La DEK est elle-même chiffrée avec la KEK (`wrappedDek`).
+5. La DEK en clair n’existe qu’**en RAM** après `unlock` / `create`. Elle n’est plus mise dans le Keystore.
 
-Sur disque, ce JSON n’apparaît jamais en clair. Il est chiffré en **AES-256-GCM** (nonce aléatoire + MAC). Le fichier `vault_<uid>.enc` contient `nonce || ciphertext || mac`.
+Mauvais maître → impossible de déballer la DEK (`VaultPasswordException`).
 
-## Où sont les clés
+## Enveloppe locale (`vault_<uid>.enc`)
 
-La clé AES (256 bits) vit dans **Flutter Secure Storage** (Keystore / Keychain), une clé **par** `uid` Firebase : `vault_aes_key_<uid>`.
+Fichier JSON (les champs sensibles sont déjà chiffrés) :
 
-Le blob chiffré vit dans le répertoire support de l’app (`path_provider`), pas dans Firebase.
-
-```mermaid
-flowchart TD
-  uid[uid Firebase]
-  keyStore[Secure Storage: clé AES]
-  file[Fichier vault_uid.enc]
-  repo[VaultRepository]
-  notifier[vaultEntriesProvider]
-  uid --> repo
-  keyStore --> repo
-  file --> repo
-  repo --> notifier
-```
-
-Changer de compte Google charge un autre fichier et une autre clé. Pas de mélange entre utilisateurs.
-
-## Providers
-
-Dans [`lib/src/providers/vault_providers.dart`](../lib/src/providers/vault_providers.dart) :
-
-| Provider | Rôle |
+| Champ | Rôle |
 | --- | --- |
-| `secureKeyStoreProvider` | Keystore ; overridable en test (mémoire) |
-| `encryptedBlobStoreProvider` | Fichier `.enc` |
-| `vaultRepositoryProvider` | load / upsert / delete |
-| `vaultEntriesProvider` | `AsyncNotifier` : liste déchiffrée, se vide si logout |
+| `v` | Version (2) |
+| `kdf` | `pbkdf2-hmac-sha256` |
+| `iterations` | 210000 |
+| `salt` | Sel PBKDF2 (Base64) |
+| `wrappedDek` | DEK chiffrée AES-GCM |
+| `ciphertext` | Liste des fiches chiffrée AES-256-GCM |
 
-`build()` du notifier **watch** `authStateProvider` : login → charge le coffre ; logout → `[]`.
+Même forme que le futur document Firestore. Détail console : [`firebase-sync.md`](firebase-sync.md).
 
-Les mutations (`upsert`, `delete`) exigent un `currentUser`. Pas d’UI pour l’instant : l’étape suivante branchera la liste dessus.
+## API
 
-## Pourquoi pas tout dans Riverpod
+- `create(uid, maître)` — premier coffre, session déverrouillée
+- `unlock(uid, maître)` — déverrouille
+- `lock()` — oublie la DEK en RAM
+- `load` / `upsert` / `delete` — exigent un coffre déverrouillé
 
-Riverpod garde la liste en RAM **après** déchiffrement, pour l’UI. Il ne remplace pas le fichier chiffré. Couper l’app oublie la RAM ; le Keystore + `.enc` restent.
+`vaultEntriesProvider` : sans maître → liste vide (verrouillé). Logout → `lock()`.
 
-Les tests du repository n’utilisent pas les plugins : `MemorySecureKeyStore` + `MemoryEncryptedBlobStore`.
+## Fiches (`VaultEntry`)
+
+Toujours : service, URL, identifiant, mot de passe, dates. Clair **uniquement en mémoire** après unlock.

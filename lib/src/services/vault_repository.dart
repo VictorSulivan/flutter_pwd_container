@@ -4,27 +4,104 @@ import 'package:cryptography/cryptography.dart';
 
 import '../models/vault_entry.dart';
 import 'vault_cipher.dart';
+import 'vault_envelope.dart';
+import 'vault_key_derivation.dart';
 import 'vault_storage.dart';
 
 class VaultRepository {
   VaultRepository({
-    required this.keyStore,
     required this.blobStore,
     VaultCipher? cipher,
-  }) : cipher = cipher ?? VaultCipher();
+    VaultKeyDerivation? kdf,
+  }) : cipher = cipher ?? VaultCipher(),
+       kdf = kdf ?? VaultKeyDerivation();
 
-  final SecureKeyStore keyStore;
   final EncryptedBlobStore blobStore;
   final VaultCipher cipher;
+  final VaultKeyDerivation kdf;
 
-  Future<List<VaultEntry>> load(String userId) async {
+  String? _unlockedUserId;
+  SecretKey? _dek;
+  VaultEnvelope? _envelope;
+
+  bool isUnlockedFor(String userId) =>
+      _unlockedUserId == userId && _dek != null;
+
+  void lock() {
+    _unlockedUserId = null;
+    _dek?.destroy();
+    _dek = null;
+    _envelope = null;
+  }
+
+  Future<bool> exists(String userId) async {
     final blob = await blobStore.read(userId);
-    if (blob == null || blob.isEmpty) {
-      return const [];
+    return blob != null && blob.isNotEmpty;
+  }
+
+  Future<void> create(String userId, String masterPassword) async {
+    if (await exists(userId)) {
+      throw StateError('Un coffre existe déjà pour cet utilisateur.');
     }
 
-    final key = await _keyFor(userId);
-    final clearText = await cipher.decrypt(blob, key);
+    final salt = kdf.newSalt();
+    final kek = await kdf.deriveKek(
+      masterPassword: masterPassword,
+      salt: salt,
+    );
+    final dek = await cipher.newKey();
+    final wrappedDek = await cipher.encrypt(
+      await cipher.extractKeyBytes(dek),
+      kek,
+    );
+    final ciphertext = await cipher.encrypt(
+      utf8.encode(jsonEncode(const <Map<String, dynamic>>[])),
+      dek,
+    );
+
+    final envelope = VaultEnvelope(
+      version: VaultEnvelope.currentVersion,
+      kdf: VaultKeyDerivation.algorithmId,
+      iterations: kdf.iterations,
+      salt: salt,
+      wrappedDek: wrappedDek,
+      ciphertext: ciphertext,
+    );
+    await blobStore.write(userId, envelope.toBytes());
+    _unlockedUserId = userId;
+    _dek = dek;
+    _envelope = envelope;
+  }
+
+  Future<void> unlock(String userId, String masterPassword) async {
+    final blob = await blobStore.read(userId);
+    if (blob == null || blob.isEmpty) {
+      throw StateError('Aucun coffre local pour cet utilisateur.');
+    }
+
+    final envelope = VaultEnvelope.fromBytes(blob);
+    final sessionKdf = VaultKeyDerivation(iterations: envelope.iterations);
+    final kek = await sessionKdf.deriveKek(
+      masterPassword: masterPassword,
+      salt: envelope.salt,
+    );
+
+    late final List<int> dekBytes;
+    try {
+      dekBytes = await cipher.decrypt(envelope.wrappedDek, kek);
+    } on Object {
+      throw const VaultPasswordException();
+    }
+
+    _unlockedUserId = userId;
+    _dek = await cipher.keyFromBytes(dekBytes);
+    _envelope = envelope;
+  }
+
+  Future<List<VaultEntry>> load(String userId) async {
+    final dek = _requireDek(userId);
+    final envelope = _envelope!;
+    final clearText = await cipher.decrypt(envelope.ciphertext, dek);
     final decoded = jsonDecode(utf8.decode(clearText)) as List<dynamic>;
     return decoded
         .map((item) => VaultEntry.fromJson(item as Map<String, dynamic>))
@@ -54,24 +131,29 @@ class VaultRepository {
   }
 
   Future<void> _persist(String userId, List<VaultEntry> entries) async {
-    final key = await _keyFor(userId);
-    final payload = jsonEncode(entries.map((entry) => entry.toJson()).toList());
-    final blob = await cipher.encrypt(utf8.encode(payload), key);
-    await blobStore.write(userId, blob);
+    final dek = _requireDek(userId);
+    final envelope = _envelope!;
+    final ciphertext = await cipher.encrypt(
+      utf8.encode(jsonEncode(entries.map((entry) => entry.toJson()).toList())),
+      dek,
+    );
+    final next = VaultEnvelope(
+      version: envelope.version,
+      kdf: envelope.kdf,
+      iterations: envelope.iterations,
+      salt: envelope.salt,
+      wrappedDek: envelope.wrappedDek,
+      ciphertext: ciphertext,
+    );
+    await blobStore.write(userId, next.toBytes());
+    _envelope = next;
   }
 
-  Future<SecretKey> _keyFor(String userId) async {
-    final storageKey = 'vault_aes_key_$userId';
-    final existing = await keyStore.read(storageKey);
-    if (existing != null) {
-      return cipher.keyFromBytes(base64Decode(existing));
+  SecretKey _requireDek(String userId) {
+    final dek = _dek;
+    if (dek == null || _unlockedUserId != userId || _envelope == null) {
+      throw const VaultLockedException();
     }
-
-    final key = await cipher.newKey();
-    await keyStore.write(
-      storageKey,
-      base64Encode(await cipher.extractKeyBytes(key)),
-    );
-    return key;
+    return dek;
   }
 }

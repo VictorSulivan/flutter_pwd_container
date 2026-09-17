@@ -65,7 +65,7 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 
 ### `vaultEntriesProvider`
 
-`AsyncNotifier<List<VaultEntry>>`. `build()` watch `authStateProvider` : pas de session → liste vide ; session → `VaultRepository.load(uid)`.
+`AsyncNotifier<List<VaultEntry>>`. Sans mot de passe maître : liste vide. `create` / `unlock` chargent les fiches. Logout → `lock()`.
 
 Les écrans feront `ref.watch(vaultEntriesProvider)` (étape UI). Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
 

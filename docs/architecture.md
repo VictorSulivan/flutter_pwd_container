@@ -39,8 +39,10 @@ sequenceDiagram
 | [`lib/src/views/login_view.dart`](../lib/src/views/login_view.dart) | Écran Google Sign-In |
 | [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Page vide post-login + déconnexion |
 | [`lib/src/models/vault_entry.dart`](../lib/src/models/vault_entry.dart) | Fiche du coffre (clair en mémoire seulement) |
+| [`lib/src/services/vault_key_derivation.dart`](../lib/src/services/vault_key_derivation.dart) | PBKDF2-HMAC-SHA256 |
+| [`lib/src/services/vault_envelope.dart`](../lib/src/services/vault_envelope.dart) | Format local = futur document Firestore |
 | [`lib/src/services/vault_cipher.dart`](../lib/src/services/vault_cipher.dart) | AES-256-GCM |
-| [`lib/src/services/vault_storage.dart`](../lib/src/services/vault_storage.dart) | Keystore + fichier `.enc` (ou mémoire en test) |
+| [`lib/src/services/vault_storage.dart`](../lib/src/services/vault_storage.dart) | Fichier `.enc` (ou mémoire en test) |
 | [`lib/src/services/vault_repository.dart`](../lib/src/services/vault_repository.dart) | load / upsert / delete par `uid` |
 | [`lib/src/providers/vault_providers.dart`](../lib/src/providers/vault_providers.dart) | `vaultEntriesProvider` |
 | [`android/app/google-services.json`](../android/app/google-services.json) | Config native Android (plugin Google Services) |
@@ -54,7 +56,7 @@ Providers Riverpod (session, coffre)
         ↓
 Repositories (AuthRepository, VaultRepository)
         ↓
-SDK (Firebase Auth, Google Sign-In, Secure Storage, fichier chiffré)
+SDK (Firebase Auth, Google Sign-In, fichier enveloppe chiffrée)
 ```
 
 Les vues ne parlent pas à Firebase directement. Ça permet de tester un écran sans Firebase, et de changer d’implémentation (ex. fake auth en test) sans retoucher l’UI.
@@ -64,4 +66,4 @@ Les vues ne parlent pas à Firebase directement. Ça permet de tester un écran 
 - L’initialisation Firebase : une seule fois dans `main()`, avant le premier frame.
 - La décision « login ou coffre » : dans `GoRouter.redirect`, pas dans un `if` au milieu de `LoginView`.
 - L’état de session : dans `authStateChanges()`, pas dans un `bool _loggedIn` local.
-- Les secrets au repos : fichier AES-GCM + clé Keystore, jamais un JSON en clair.
+- Les secrets au repos : enveloppe PBKDF2 + AES-GCM, jamais un JSON de mots de passe en clair.
