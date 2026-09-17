@@ -1,41 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'router/app_router.dart';
-import 'router/auth_refresh.dart';
 import 'theme/app_theme.dart';
 
-class App extends StatefulWidget {
+class App extends ConsumerWidget {
   const App({super.key});
 
   @override
-  State<App> createState() => _AppState();
-}
-
-class _AppState extends State<App> {
-  late final AuthRefresh _authRefresh;
-  late final GoRouter _router;
-
-  @override
-  void initState() {
-    super.initState();
-    _authRefresh = AuthRefresh();
-    _router = createRouter(_authRefresh);
-  }
-
-  @override
-  void dispose() {
-    _router.dispose();
-    _authRefresh.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'SafeVault',
       theme: buildAppTheme(),
-      routerConfig: _router,
+      routerConfig: router,
     );
   }
 }

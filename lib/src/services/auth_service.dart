@@ -2,17 +2,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-class AuthService {
-  AuthService._();
+class AuthRepository {
+  AuthRepository({
+    FirebaseAuth? firebaseAuth,
+    GoogleSignIn? googleSignIn,
+  }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
+       _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
 
-  static User? get currentUser => _auth.currentUser;
+  User? get currentUser => _auth.currentUser;
 
-  static Stream<User?> authStateChanges() => _auth.authStateChanges();
+  Stream<User?> authStateChanges() => _auth.authStateChanges();
 
-  static Future<void> signInWithGoogle() async {
+  Future<void> signInWithGoogle() async {
     if (kIsWeb) {
       await _auth.signInWithPopup(GoogleAuthProvider());
       return;
@@ -45,7 +49,7 @@ class AuthService {
     }
   }
 
-  static Future<void> signOut() async {
+  Future<void> signOut() async {
     await _auth.signOut();
     try {
       await _googleSignIn.signOut();

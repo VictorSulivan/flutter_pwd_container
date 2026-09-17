@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/auth_service.dart';
+import '../providers/auth_providers.dart';
 import '../theme/app_theme.dart';
 
-class LoginView extends StatefulWidget {
+class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
 
   @override
-  State<LoginView> createState() => _LoginViewState();
+  ConsumerState<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
+class _LoginViewState extends ConsumerState<LoginView> {
   bool _loading = false;
   String? _error;
 
@@ -21,7 +22,7 @@ class _LoginViewState extends State<LoginView> {
     });
 
     try {
-      await AuthService.signInWithGoogle();
+      await ref.read(authRepositoryProvider).signInWithGoogle();
     } on Object catch (error) {
       if (!mounted) {
         return;

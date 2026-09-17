@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../services/auth_service.dart';
+import '../providers/auth_providers.dart';
 import '../views/home_view.dart';
 import '../views/login_view.dart';
 
@@ -10,12 +14,22 @@ abstract final class AppRoutes {
   static const login = '/login';
 }
 
-GoRouter createRouter(Listenable authRefresh) {
+final routerProvider = Provider<GoRouter>((ref) {
+  final refresh = _AuthRefresh(
+    ref.watch(authRepositoryProvider).authStateChanges(),
+  );
+  ref.onDispose(refresh.dispose);
+  return createRouter(ref, refresh);
+});
+
+GoRouter createRouter(Ref ref, Listenable authRefresh) {
   return GoRouter(
     initialLocation: AppRoutes.home,
     refreshListenable: authRefresh,
     redirect: (context, state) {
-      final loggedIn = AuthService.currentUser != null;
+      final loggedIn =
+          ref.read(authStateProvider).value != null ||
+          ref.read(authRepositoryProvider).currentUser != null;
       final onLogin = state.matchedLocation == AppRoutes.login;
 
       if (!loggedIn && !onLogin) {
@@ -37,4 +51,18 @@ GoRouter createRouter(Listenable authRefresh) {
       ),
     ],
   );
+}
+
+class _AuthRefresh extends ChangeNotifier {
+  _AuthRefresh(Stream<User?> stream) {
+    _subscription = stream.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<User?> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
 }
