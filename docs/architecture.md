@@ -1,8 +1,6 @@
 # Architecture actuelle
 
-SafeVault (package `flutter_pwd_container`) est un coffre de mots de passe. **Aujourd’hui**, seule la **session** existe : se connecter avec Google, rester connecté, accéder à une page d’accueil vide.
-
-Les secrets du coffre ne sont pas encore stockés. Riverpod prépare le terrain : les écrans liront plus tard un repository chiffré de la même façon qu’ils lisent déjà l’auth.
+SafeVault (package `flutter_pwd_container`) est un coffre de mots de passe. **Aujourd’hui** : session Google + coffre chiffré local (données seulement, pas encore d’écran de liste).
 
 ## Flux de démarrage
 
@@ -40,6 +38,11 @@ sequenceDiagram
 | [`lib/src/router/app_router.dart`](../lib/src/router/app_router.dart) | Routes, garde d’auth, `routerProvider` |
 | [`lib/src/views/login_view.dart`](../lib/src/views/login_view.dart) | Écran Google Sign-In |
 | [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Page vide post-login + déconnexion |
+| [`lib/src/models/vault_entry.dart`](../lib/src/models/vault_entry.dart) | Fiche du coffre (clair en mémoire seulement) |
+| [`lib/src/services/vault_cipher.dart`](../lib/src/services/vault_cipher.dart) | AES-256-GCM |
+| [`lib/src/services/vault_storage.dart`](../lib/src/services/vault_storage.dart) | Keystore + fichier `.enc` (ou mémoire en test) |
+| [`lib/src/services/vault_repository.dart`](../lib/src/services/vault_repository.dart) | load / upsert / delete par `uid` |
+| [`lib/src/providers/vault_providers.dart`](../lib/src/providers/vault_providers.dart) | `vaultEntriesProvider` |
 | [`android/app/google-services.json`](../android/app/google-services.json) | Config native Android (plugin Google Services) |
 
 ## Couches
@@ -47,11 +50,11 @@ sequenceDiagram
 ```
 Vues (LoginView, HomeView)
         ↓ ref.read / ref.watch
-Providers Riverpod (session, plus tard coffre)
+Providers Riverpod (session, coffre)
         ↓
-Repositories (AuthRepository, plus tard VaultRepository)
+Repositories (AuthRepository, VaultRepository)
         ↓
-SDK (Firebase Auth, Google Sign-In, plus tard stockage chiffré)
+SDK (Firebase Auth, Google Sign-In, Secure Storage, fichier chiffré)
 ```
 
 Les vues ne parlent pas à Firebase directement. Ça permet de tester un écran sans Firebase, et de changer d’implémentation (ex. fake auth en test) sans retoucher l’UI.
@@ -61,3 +64,4 @@ Les vues ne parlent pas à Firebase directement. Ça permet de tester un écran 
 - L’initialisation Firebase : une seule fois dans `main()`, avant le premier frame.
 - La décision « login ou coffre » : dans `GoRouter.redirect`, pas dans un `if` au milieu de `LoginView`.
 - L’état de session : dans `authStateChanges()`, pas dans un `bool _loggedIn` local.
+- Les secrets au repos : fichier AES-GCM + clé Keystore, jamais un JSON en clair.

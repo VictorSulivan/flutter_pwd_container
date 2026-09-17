@@ -20,4 +20,5 @@ Android : ajouter le **SHA-1** debug dans la console Firebase (`flutter-pwd-cont
 
 - Firebase Auth + Google Sign-In
 - GoRouter (garde `/login` ↔ `/`)
-- Riverpod (session uniquement)
+- Riverpod (session + coffre)
+- Coffre local AES-256-GCM (données, pas encore d’UI)

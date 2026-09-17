@@ -2,8 +2,8 @@
 
 Riverpod est le **bus d’état** de l’app. Ce n’est **pas** la persistance : il ne chiffre rien et n’écrit pas sur le disque.
 
-- **Aujourd’hui** : il expose la session Firebase aux widgets et au router.
-- **Ensuite** : les mêmes écrans feront `ref.watch(vaultEntriesProvider)` ; le chiffrement AES-256 vivra **dans** un `VaultRepository`, derrière un provider.
+- **Aujourd’hui** : il expose la session Firebase et la liste déchiffrée du coffre.
+- **Le chiffrement** vit dans `VaultRepository` / `VaultCipher`, pas dans Riverpod.
 
 ## Pourquoi Riverpod ici
 
@@ -63,6 +63,14 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 
 `App` est un `ConsumerWidget` qui fait `ref.watch(routerProvider)` : le `GoRouter` est stable tant que le repository d’auth ne change pas.
 
+### `vaultEntriesProvider`
+
+`AsyncNotifier<List<VaultEntry>>`. `build()` watch `authStateProvider` : pas de session → liste vide ; session → `VaultRepository.load(uid)`.
+
+Les écrans feront `ref.watch(vaultEntriesProvider)` (étape UI). Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
+
+Détail du stockage : [`vault.md`](vault.md).
+
 ## Règles d’usage
 
 | Intention | API |
@@ -71,11 +79,6 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 | Déclencher une action (login, logout) | `ref.read` |
 | Recréer le router à chaque event auth | **interdit** (`watch` de `authStateProvider` dans `routerProvider`) |
 
-## Ce qui viendra (sans le coder maintenant)
+## Ce qui viendra
 
-```
-vaultRepositoryProvider   → accès disque chiffré
-vaultEntriesProvider      → liste des fiches pour l’UI
-```
-
-Même schéma que l’auth : widget → provider → repository → stockage. Les mots de passe en clair ne doivent jamais vivre dans un provider « global » plus longtemps que le besoin d’affichage.
+L’UI coffre (liste / édition). Le générateur. Les alertes. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.

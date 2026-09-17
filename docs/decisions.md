@@ -12,7 +12,7 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 ## D2 — Riverpod n’est pas le stockage du coffre
 
-**Décision :** Riverpod orchestre l’état ; le coffre sera un repository + AES-256 / secure storage.
+**Décision :** Riverpod orchestre l’état ; le coffre est un repository + AES-256-GCM / secure storage.
 
 **Pourquoi :** un `StateProvider<List<Entry>>` garderait les secrets en RAM sans politique de chiffrement, de purge, ni de cloisonnement par `uid` Firebase. L’auth et le coffre ont des durées de vie différentes (session cloud vs secrets locaux).
 
@@ -48,6 +48,14 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 ## D8 — Développement par petites étapes
 
-Ordre figé : auth Riverpod (fait) → repository coffre chiffré sans UI → UI coffre → générateur → alertes → biométrie / inactivité → IA zero-knowledge → login e-mail.
+Ordre figé : auth Riverpod (fait) → repository coffre chiffré sans UI (fait) → UI coffre → générateur → alertes → biométrie / inactivité → IA zero-knowledge → login e-mail.
 
 **Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang » chiffrement + UI + IA.
+
+## D9 — AES-256-GCM, clé au Keystore, blob dans un fichier
+
+**Décision :** clé AES par `uid` dans Flutter Secure Storage ; ciphertext dans `vault_<uid>.enc` (répertoire support). GCM pour l’authentification du blob (MAC).
+
+**Pourquoi :** Secure Storage a des limites de taille ; un coffre peut grandir. Le Keystore protège la clé, pas besoin d’y mettre tout le JSON. GCM détecte un fichier tronqué ou modifié.
+
+**Revoir si :** web (pas de `dart:io` fichier) : stocker le blob autrement.

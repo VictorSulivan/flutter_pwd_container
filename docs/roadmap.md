@@ -7,11 +7,11 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 1. **Auth Google + Firebase + GoRouter** — session, `/login` et `/`.
 2. **UI login SafeVault** — sans e-mail ni avatar.
 3. **Riverpod sur la session** — `AuthRepository`, `authStateProvider`, `routerProvider`.
+4. **Coffre (données seulement)** — `VaultEntry`, AES-256-GCM, isolation par uid, `vaultEntriesProvider`. Pas d’écran de liste.
 
 ## Suivant
 
-2. **Coffre (données seulement)** — modèle de fiche (service, URL, identifiant, secret, dates) + repository AES-256 / stockage sécurisé + providers Riverpod. Toujours **sans** écran de liste.
-3. **UI coffre** — liste / création / édition branchées sur ces providers.
+3. **UI coffre** — liste / création / édition branchées sur `vaultEntriesProvider`.
 4. **Générateur** — longueur, jeux de caractères, copie, purge presse-papiers à 30 s.
 5. **Alertes** — hash de similarité (pas de clair), obsolescence, faiblesse.
 6. **Verrouillage** — biométrie optionnelle, timeout d’inactivité.

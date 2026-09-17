@@ -9,5 +9,6 @@ Le cahier des charges produit est dans [`../project.md`](../project.md). Ici on 
 | [architecture.md](architecture.md) | Vue d’ensemble, arborescence, flux de démarrage |
 | [auth.md](auth.md) | Firebase, Google Sign-In, session, redirections |
 | [riverpod.md](riverpod.md) | Providers : rôle de chacun, ce que Riverpod n’est pas |
+| [vault.md](vault.md) | Coffre AES-256-GCM, isolation par uid, providers |
 | [decisions.md](decisions.md) | Décisions figées (pourquoi X plutôt que Y) |
 | [roadmap.md](roadmap.md) | Fait / pas encore fait, ordre des prochaines étapes |
