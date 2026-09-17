@@ -12,18 +12,22 @@ service cloud.firestore {
         'iterations',
         'salt',
         'wrappedDek',
-        'ciphertext',
+        'encryptedEntries',
         'updatedAt'
       ]);
     }
 
-    // Collection visible dans l’onglet Données : vaults / {uid}
-    match /vaults/{userId} {
+    // Fiches du coffre, déjà chiffrées. Pas le compte Google, pas le maître.
+    match /coffres/{userId}/contenu/{document} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId) && vaultFields();
     }
 
-    // Ancien chemin imbriqué : lecture seule (migration).
+    match /vaults/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
     match /users/{userId}/vault/{document} {
       allow read: if isOwner(userId);
       allow write: if false;

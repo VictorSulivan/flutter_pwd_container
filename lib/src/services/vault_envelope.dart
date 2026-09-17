@@ -33,13 +33,15 @@ class VaultEnvelope {
 
   factory VaultEnvelope.fromJson(Map<String, dynamic> decoded) {
     final updatedAtRaw = decoded['updatedAt'] as String?;
+    final encrypted = decoded['encryptedEntries'] as String? ??
+        decoded['ciphertext'] as String;
     return VaultEnvelope(
       version: decoded['v'] as int,
       kdf: decoded['kdf'] as String,
       iterations: (decoded['iterations'] as num).toInt(),
       salt: base64Decode(decoded['salt'] as String),
       wrappedDek: base64Decode(decoded['wrappedDek'] as String),
-      ciphertext: base64Decode(decoded['ciphertext'] as String),
+      ciphertext: base64Decode(encrypted),
       updatedAt: updatedAtRaw == null
           ? unknownUpdatedAt
           : DateTime.parse(updatedAtRaw).toUtc(),
@@ -66,7 +68,17 @@ class VaultEnvelope {
     return Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
   }
 
-  Map<String, dynamic> toFirestoreMap() => toJson();
+  Map<String, dynamic> toFirestoreMap() {
+    return {
+      'v': version,
+      'kdf': kdf,
+      'iterations': iterations,
+      'salt': base64Encode(salt),
+      'wrappedDek': base64Encode(wrappedDek),
+      'encryptedEntries': base64Encode(ciphertext),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
+    };
+  }
 }
 
 class VaultLockedException implements Exception {

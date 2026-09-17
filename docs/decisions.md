@@ -78,7 +78,7 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 
 ## D12 — Firestore ne voit que l’enveloppe, last-write-wins
 
-**Décision :** `vaults/{uid}` = même JSON que le fichier local. Pas de fiches en clair. Conflit = `updatedAt` le plus récent.
+**Décision :** `coffres/{uid}/contenu/actuel` = fiches de l’app déjà chiffrées. Pas le compte Google, pas le maître. Conflit = `updatedAt` le plus récent.
 
 **Pourquoi :** Google Sign-In ne doit pas suffire à lire le coffre. Un merge champ par champ des fiches exigerait de déchiffrer dans le cloud.
 

@@ -177,6 +177,18 @@ void main() {
     await expectLater(store.read('user-a'), throwsA(isA<StateError>()));
   });
 
+  test('fromJson accepte encryptedEntries (document Firestore)', () {
+    final parsed = VaultEnvelope.fromJson({
+      'v': 2,
+      'kdf': 'pbkdf2-hmac-sha256',
+      'iterations': 3,
+      'salt': base64Encode([1]),
+      'wrappedDek': base64Encode([2]),
+      'encryptedEntries': base64Encode([9, 8, 7]),
+    });
+    expect(parsed.ciphertext, [9, 8, 7]);
+  });
+
   test('fromJson accepte une enveloppe v2 sans updatedAt', () {
     final parsed = VaultEnvelope.fromJson({
       'v': 2,
@@ -208,9 +220,15 @@ void main() {
     );
 
     final map = (await remote.read('user-a'))!.toFirestoreMap();
-    expect(map.keys, containsAll(['salt', 'wrappedDek', 'ciphertext', 'updatedAt']));
+    expect(
+      map.keys,
+      containsAll(['salt', 'wrappedDek', 'encryptedEntries', 'updatedAt']),
+    );
+    expect(map.containsKey('ciphertext'), isFalse);
     expect(jsonEncode(map), isNot(contains('s3cret')));
     expect(jsonEncode(map), isNot(contains('master-pass')));
+    expect(jsonEncode(map), isNot(contains('orion')));
+    expect(jsonEncode(map), isNot(contains('GitHub')));
   });
 
   test('create reste ouvert si Firestore refuse l’écriture', () async {
