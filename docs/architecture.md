@@ -49,7 +49,7 @@ sequenceDiagram
 | [`lib/src/services/vault_envelope.dart`](../lib/src/services/vault_envelope.dart) | Format local = document Firestore |
 | [`lib/src/services/vault_cipher.dart`](../lib/src/services/vault_cipher.dart) | AES-256-GCM |
 | [`lib/src/services/vault_storage.dart`](../lib/src/services/vault_storage.dart) | Fichier `.enc` (ou mémoire en test) |
-| [`lib/src/services/vault_remote.dart`](../lib/src/services/vault_remote.dart) | Lecture / écriture `users/{uid}/vault/current` |
+| [`lib/src/services/vault_remote.dart`](../lib/src/services/vault_remote.dart) | Lecture / écriture `vaults/{uid}` |
 | [`lib/src/services/vault_sync.dart`](../lib/src/services/vault_sync.dart) | Last-write-wins local ↔ Firestore |
 | [`lib/src/services/vault_repository.dart`](../lib/src/services/vault_repository.dart) | load / upsert / delete par `uid` |
 | [`lib/src/providers/vault_providers.dart`](../lib/src/providers/vault_providers.dart) | `vaultEntriesProvider` |

@@ -30,31 +30,51 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
 
   final FirebaseFirestore _firestore;
 
-  static const documentId = 'current';
-
   DocumentReference<Map<String, dynamic>> _doc(String userId) {
+    return _firestore.collection('vaults').doc(userId);
+  }
+
+  DocumentReference<Map<String, dynamic>> _legacyDoc(String userId) {
     return _firestore
         .collection('users')
         .doc(userId)
         .collection('vault')
-        .doc(documentId);
+        .doc('current');
   }
 
   @override
   Future<VaultEnvelope?> read(String userId) async {
-    final snapshot = await _doc(userId).get(
-      const GetOptions(source: Source.server),
-    );
-    final data = snapshot.data();
-    if (!snapshot.exists || data == null || data.isEmpty) {
+    try {
+      final snapshot = await _doc(userId).get(
+        const GetOptions(source: Source.server),
+      );
+      final data = snapshot.data();
+      if (snapshot.exists && data != null && data.isNotEmpty) {
+        return VaultEnvelope.fromFirestoreMap(data);
+      }
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') {
+        throw StateError('vaults/$userId ${error.code}: ${error.message}');
+      }
+    }
+
+    try {
+      final legacy = await _legacyDoc(userId).get(
+        const GetOptions(source: Source.server),
+      );
+      final data = legacy.data();
+      if (!legacy.exists || data == null || data.isEmpty) {
+        return null;
+      }
+      return VaultEnvelope.fromFirestoreMap(data);
+    } on FirebaseException {
       return null;
     }
-    return VaultEnvelope.fromFirestoreMap(data);
   }
 
   @override
   Future<void> write(String userId, VaultEnvelope envelope) async {
-    final path = 'users/$userId/vault/current';
+    final path = 'vaults/$userId';
     final doc = _doc(userId);
     try {
       await doc.set(envelope.toFirestoreMap());

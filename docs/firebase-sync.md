@@ -2,7 +2,7 @@
 
 On n’envoie **jamais** les mots de passe en clair. Firestore ne reçoit que l’enveloppe déjà chiffrée (sel PBKDF2, clé AES enveloppée, blob AES-GCM, horodatage).
 
-Cette page = console Firebase **et** ce que l’app écrit maintenant : `users/{uid}/vault/current`.
+Cette page = console Firebase **et** ce que l’app écrit maintenant : **`vaults/{uid}`**.
 
 Projet : **flutter-pwd-container**.
 
@@ -16,58 +16,27 @@ Sans Auth, les règles Firestore ci-dessous refusent tout.
 
 ## 2. Créer la base Firestore
 
-1. Menu **Build** → **Firestore Database**.
+1. Menu **Build** → **Firestore Database** (pas **Realtime Database**).
 2. **Créer une base de données**.
-3. Mode des règles : **Production** (pas « test » : le mode test ouvre la base 30 jours à tout le monde).
-4. Localisation : **`europe-west1`** (Belgique) ou **`europe-west9`** (Paris). Une fois choisie, elle est figée.
+3. Mode des règles : **Production**.
+4. Localisation : **`europe-west1`** (Belgique) ou **`europe-west9`** (Paris).
 5. Valider.
-
-Tu obtiens une base vide. C’est normal.
 
 ## 3. Coller les règles de sécurité
 
-1. Onglet **Règles**.
-2. Remplace tout par le contenu de [`firestore.rules`](../firestore.rules) :
+Sans ces règles, la collection `vaults` est refusée.
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/vault/{document} {
-      allow read: if request.auth != null
-        && request.auth.uid == userId;
-      allow write: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly([
-          'v',
-          'kdf',
-          'iterations',
-          'salt',
-          'wrappedDek',
-          'ciphertext',
-          'updatedAt'
-        ]);
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
-```
-
+1. [Firestore → Règles](https://console.firebase.google.com/project/flutter-pwd-container/firestore/rules)
+2. Remplace tout par le contenu de [`firestore.rules`](../firestore.rules).
 3. **Publier**.
 
 Effet :
 
-- seul l’utilisateur connecté lit/écrit `users/{sonUid}/vault/...`
-- aucun autre chemin n’est accessible
+- seul l’utilisateur connecté lit/écrit `vaults/{sonUid}`
+- aucun autre chemin n’est accessible en écriture
 - un compte Google A ne voit pas le coffre de B
-- un write avec un champ hors liste (`password`, etc.) est refusé
 
-Si tu avais déjà collé l’ancienne version (read/write sans `hasOnly`), **recolle et republie**.
-
-Déploiement en CLI (après `firebase login`) :
+Déploiement CLI :
 
 ```bash
 firebase deploy --only firestore:rules --project flutter-pwd-container
@@ -75,14 +44,14 @@ firebase deploy --only firestore:rules --project flutter-pwd-container
 
 ## 4. Ce qu’on n’active pas
 
-- **Realtime Database** : inutile, on utilisera Firestore.
-- **Storage** : le blob tient dans un document.
+- **Realtime Database** : reste vide, on ne l’utilise pas.
+- **Storage**.
 - Règles « test » / `allow read, write: if true`.
-- Champs `password`, `entries` en clair dans un document.
+- Champs `password` en clair.
 
 ## 5. Document écrit par l’app
 
-Chemin : `users/{uid}/vault/current`
+Chemin : **`vaults/{uid}`** (collection racine, un document par compte).
 
 | Champ | Sens | Secret ? |
 | --- | --- | --- |
@@ -96,48 +65,19 @@ Chemin : `users/{uid}/vault/current`
 
 Sans le **mot de passe maître**, ces bytes ne s’ouvrent pas, même avec un accès console.
 
-Comportement client (`SyncingEncryptedBlobStore`) :
+Comportement client :
 
-- `create` / `unlock` / `upsert` / `delete` : fichier local d’abord, puis copie Firestore **confirmée par le serveur**.
-- bouton **Synchroniser** (coffre ouvert) : compare fichier, mémoire et Firestore, garde l’enveloppe la plus récente, recopie les deux côtés, relit la liste.
-- un coffre **déjà local** est aussi poussé au déverrouillage.
-- le cache Firestore est coupé : une écriture « OK » en local ne suffit plus, le document doit exister côté serveur.
-- si Firestore refuse, le coffre local reste utilisable ; l’app propose **Réessayer**.
-- `exists` / `unlock` : si le fichier local manque, on tire le document distant **depuis le serveur**.
-- conflit : l’enveloppe avec le `updatedAt` le plus récent gagne.
-- Firestore down **et** pas de fichier local : erreur (on n’affiche pas « Créer le coffre »).
+- `create` / `unlock` / `upsert` / `delete` : fichier local d’abord, puis copie Firestore.
+- bouton **Synchroniser** : last-write-wins local ↔ `vaults/{uid}`.
+- lecture : `vaults/{uid}`, sinon l’ancien chemin `users/{uid}/vault/current`.
 
 ## Où le voir dans la console
 
-Le document n’est **pas** à la racine, et le parent `users/{uid}` n’a souvent **pas de champs** (ligne en *italique*).
+**Authentication** = le compte Google. **Realtime Database** reste vide.
 
-**Authentication** (onglet Utilisateurs) = le compte Google. Ce n’est pas le coffre.
+1. [Firestore Données](https://console.firebase.google.com/project/flutter-pwd-container/firestore/data)
+2. Collection **`vaults`**.
+3. Document = ton uid Google (ex. `zVwFTmHBpiUbR1bz6eh3VhXLo4D2`).
+4. Champs `salt`, `wrappedDek`, `ciphertext`, `updatedAt`.
 
-**Realtime Database** reste vide : on n’écrit que dans **Cloud Firestore**.
-
-1. [Firestore](https://console.firebase.google.com/project/flutter-pwd-container/firestore) → base **(default)** → onglet **Données**.
-2. Collection `users`.
-3. Document **ton uid** (parfois gris / italique).
-4. Sous-collection `vault`.
-5. Document `current` : `salt`, `wrappedDek`, `ciphertext`, `updatedAt`.
-
-Sans coffre créé (mot de passe maître), Firestore n’a **aucun** document `vault`. Le login Google ne crée que l’utilisateur Auth.
-
-Pas de mot de passe en clair. Realtime Database reste vide (on ne l’utilise pas).
-
-Si `permission-denied` : recoller [`firestore.rules`](../firestore.rules) et **Publier**, puis dans l’app **verrouiller / déverrouiller**.
-
-## 6. Contrôle rapide
-
-Dans **Règles** → **Playground** (ou simulateur) :
-
-- `get` sur `users/UID_A/vault/current` **authentifié en A** → autorisé
-- le même **non authentifié** → refusé
-- le même **authentifié en B** → refusé
-
-## Suite dans le code
-
-1. Fait : PBKDF2 + enveloppe locale.
-2. Fait : écran mot de passe maître (`/unlock`).
-3. Fait : `cloud_firestore` copie l’enveloppe (pas les secrets en clair).
-4. Ensuite : UI liste des fiches (fait).
+Si la collection n’apparaît pas : coller les règles, **Publier**, hot restart de l’app, **Synchroniser**.

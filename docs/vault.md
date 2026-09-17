@@ -28,7 +28,7 @@ Fichier JSON (les champs sensibles sont déjà chiffrés) :
 | `ciphertext` | Liste des fiches chiffrée AES-256-GCM |
 | `updatedAt` | Horodatage UTC pour le sync |
 
-Même forme que le document Firestore `users/{uid}/vault/current`. Détail : [`firebase-sync.md`](firebase-sync.md).
+Même forme que le document Firestore `vaults/{uid}`. Détail : [`firebase-sync.md`](firebase-sync.md).
 
 `SyncingEncryptedBlobStore` tient le fichier et Firestore alignés. Hors-ligne, le fichier local suffit. Sur un nouvel appareil, `exists` / `unlock` tirent d’abord le document distant.
 

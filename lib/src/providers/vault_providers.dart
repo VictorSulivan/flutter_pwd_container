@@ -74,6 +74,8 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
       ref.read(vaultSyncErrorProvider.notifier).setMessage(
         error == null
             ? null
+            : error.toString().contains('permission-denied')
+            ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
             : 'La copie cloud a échoué. Le coffre local est à jour.',
       );
     }
@@ -104,9 +106,12 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     } on VaultEnvelopeMismatchException catch (error) {
       ref.read(vaultSyncErrorProvider.notifier).setMessage(error.message);
       return;
-    } on Object {
+    } on Object catch (error) {
+      final denied = error.toString().contains('permission-denied');
       ref.read(vaultSyncErrorProvider.notifier).setMessage(
-        'La copie cloud a échoué. Le coffre local est à jour.',
+        denied
+            ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
+            : 'La copie cloud a échoué. Le coffre local est à jour.',
       );
       return;
     }
