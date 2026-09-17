@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/vault_providers.dart';
+import '../views/entry_view.dart';
 import '../views/home_view.dart';
 import '../views/login_view.dart';
 import '../views/unlock_view.dart';
@@ -15,6 +16,7 @@ abstract final class AppRoutes {
   static const home = '/';
   static const login = '/login';
   static const unlock = '/unlock';
+  static const entryNew = '/entry/new';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -63,6 +65,16 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginView(),
+      ),
+      GoRoute(
+        path: AppRoutes.entryNew,
+        builder: (context, state) => const EntryView(),
+      ),
+      GoRoute(
+        path: '/entry/:id',
+        builder: (context, state) => EntryView(
+          entryId: state.pathParameters['id'],
+        ),
       ),
     ],
   );

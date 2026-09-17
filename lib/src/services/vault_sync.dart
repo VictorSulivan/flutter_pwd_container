@@ -1,8 +1,17 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 import 'vault_envelope.dart';
 import 'vault_remote.dart';
 import 'vault_storage.dart';
+
+class VaultSyncException implements Exception {
+  const VaultSyncException(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() => 'Firestore: $cause';
+}
 
 /// Copie l’enveloppe chiffrée entre le fichier local et Firestore.
 ///
@@ -17,6 +26,8 @@ class SyncingEncryptedBlobStore implements EncryptedBlobStore {
   final EncryptedBlobStore local;
   final VaultRemoteStore remote;
 
+  Object? lastRemoteError;
+
   @override
   Future<Uint8List?> read(String userId) async {
     final localBytes = await local.read(userId);
@@ -26,8 +37,11 @@ class SyncingEncryptedBlobStore implements EncryptedBlobStore {
     Object? remoteError;
     try {
       remoteEnvelope = await remote.read(userId);
+      lastRemoteError = null;
     } on Object catch (error) {
       remoteError = error;
+      lastRemoteError = error;
+      debugPrint('Firestore read failed: $error');
     }
 
     if (localEnvelope == null && remoteEnvelope == null) {
@@ -43,8 +57,7 @@ class SyncingEncryptedBlobStore implements EncryptedBlobStore {
     if (localEnvelope == null || !_same(localEnvelope, winner)) {
       await local.write(userId, bytes);
     }
-    if (remoteError == null &&
-        (remoteEnvelope == null || !_same(remoteEnvelope, winner))) {
+    if (remoteEnvelope == null || !_same(remoteEnvelope, winner)) {
       await _tryRemoteWrite(userId, winner);
     }
     return bytes;
@@ -53,14 +66,23 @@ class SyncingEncryptedBlobStore implements EncryptedBlobStore {
   @override
   Future<void> write(String userId, Uint8List bytes) async {
     await local.write(userId, bytes);
-    await _tryRemoteWrite(userId, VaultEnvelope.fromBytes(bytes));
+    try {
+      await remote.write(userId, VaultEnvelope.fromBytes(bytes));
+      lastRemoteError = null;
+    } on Object catch (error) {
+      lastRemoteError = error;
+      debugPrint('Firestore write failed: $error');
+      throw VaultSyncException(error);
+    }
   }
 
   Future<void> _tryRemoteWrite(String userId, VaultEnvelope envelope) async {
     try {
       await remote.write(userId, envelope);
-    } on Object {
-      // Hors-ligne : le fichier local reste utilisable. Prochain read/write réessaie.
+      lastRemoteError = null;
+    } on Object catch (error) {
+      lastRemoteError = error;
+      debugPrint('Firestore write failed: $error');
     }
   }
 

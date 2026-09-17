@@ -56,7 +56,7 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 ## D8 — Développement par petites étapes
 
-Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître → sync (fait) → UI liste.
+Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître → sync → UI liste (fait) → générateur.
 
 **Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang ».
 

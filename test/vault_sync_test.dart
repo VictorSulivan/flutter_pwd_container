@@ -89,8 +89,28 @@ void main() {
     );
     final payload = envelope(updatedAt: DateTime.utc(2026, 3, 1));
 
-    await store.write('user-a', payload.toBytes());
+    await expectLater(
+      store.write('user-a', payload.toBytes()),
+      throwsA(isA<VaultSyncException>()),
+    );
     expect(await local.read('user-a'), isNotNull);
+    expect(store.lastRemoteError, isNotNull);
+  });
+
+  test('un coffre local existant est poussé vers un remote vide', () async {
+    final local = MemoryEncryptedBlobStore();
+    final remote = MemoryVaultRemoteStore();
+    final payload = envelope(updatedAt: DateTime.utc(2026, 4, 1));
+    await local.write('user-a', payload.toBytes());
+
+    final store = SyncingEncryptedBlobStore(local: local, remote: remote);
+    await store.read('user-a');
+
+    expect(await remote.read('user-a'), isNotNull);
+    expect(
+      utf8.decode((await remote.read('user-a'))!.ciphertext),
+      utf8.decode(payload.ciphertext),
+    );
   });
 
   test('sans copie locale, un remote HS n’invente pas un coffre vide', () async {
@@ -137,6 +157,20 @@ void main() {
     expect(jsonEncode(map), isNot(contains('s3cret')));
     expect(jsonEncode(map), isNot(contains('master-pass')));
   });
+
+  test('create reste ouvert si Firestore refuse l’écriture', () async {
+    final repository = VaultRepository(
+      blobStore: SyncingEncryptedBlobStore(
+        local: MemoryEncryptedBlobStore(),
+        remote: _WriteFailingVaultRemoteStore(),
+      ),
+      kdf: VaultKeyDerivation(iterations: 3),
+    );
+
+    await repository.create('user-a', 'master-pass');
+    expect(repository.isUnlockedFor('user-a'), isTrue);
+    expect(await repository.load('user-a'), isEmpty);
+  });
 }
 
 class _FailingVaultRemoteStore implements VaultRemoteStore {
@@ -144,6 +178,16 @@ class _FailingVaultRemoteStore implements VaultRemoteStore {
   Future<VaultEnvelope?> read(String userId) async {
     throw StateError('Firestore indisponible');
   }
+
+  @override
+  Future<void> write(String userId, VaultEnvelope envelope) async {
+    throw StateError('Firestore indisponible');
+  }
+}
+
+class _WriteFailingVaultRemoteStore implements VaultRemoteStore {
+  @override
+  Future<VaultEnvelope?> read(String userId) async => null;
 
   @override
   Future<void> write(String userId, VaultEnvelope envelope) async {

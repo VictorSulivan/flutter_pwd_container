@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_pwd_container/src/models/vault_entry.dart';
 import 'package:flutter_pwd_container/src/providers/vault_providers.dart';
+import 'package:flutter_pwd_container/src/views/entry_view.dart';
+import 'package:flutter_pwd_container/src/views/home_view.dart';
 import 'package:flutter_pwd_container/src/views/login_view.dart';
 import 'package:flutter_pwd_container/src/views/unlock_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,4 +52,64 @@ void main() {
     expect(find.text('Déverrouiller'), findsWidgets);
     expect(find.text('Confirmer'), findsNothing);
   });
+
+  testWidgets('affiche l’état vide du coffre', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          vaultEntriesProvider.overrideWith(_EmptyEntries.new),
+        ],
+        child: const MaterialApp(home: HomeView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aucune fiche'), findsOneWidget);
+    expect(find.byTooltip('Ajouter une fiche'), findsOneWidget);
+  });
+
+  testWidgets('affiche une fiche existante', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          vaultEntriesProvider.overrideWith(_GitHubEntries.new),
+        ],
+        child: const MaterialApp(home: HomeView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('GitHub'), findsOneWidget);
+    expect(find.text('orion'), findsOneWidget);
+  });
+
+  testWidgets('affiche le formulaire d’une nouvelle fiche', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: EntryView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nouvelle fiche'), findsOneWidget);
+    expect(find.text('Enregistrer'), findsOneWidget);
+  });
+}
+
+class _EmptyEntries extends VaultEntriesNotifier {
+  @override
+  Future<List<VaultEntry>> build() async => const [];
+}
+
+class _GitHubEntries extends VaultEntriesNotifier {
+  @override
+  Future<List<VaultEntry>> build() async {
+    return [
+      VaultEntry.create(
+        serviceName: 'GitHub',
+        username: 'orion',
+        password: 's3cret',
+      ),
+    ];
+  }
 }

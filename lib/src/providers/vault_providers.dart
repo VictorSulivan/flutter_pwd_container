@@ -34,6 +34,18 @@ final vaultExistsProvider = FutureProvider<bool>((ref) async {
   return ref.watch(vaultRepositoryProvider).exists(user.uid);
 });
 
+final vaultSyncErrorProvider =
+    NotifierProvider<VaultSyncErrorNotifier, String?>(
+      VaultSyncErrorNotifier.new,
+    );
+
+class VaultSyncErrorNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void setMessage(String? message) => state = message;
+}
+
 final vaultEntriesProvider =
     AsyncNotifierProvider<VaultEntriesNotifier, List<VaultEntry>>(
       VaultEntriesNotifier.new,
@@ -54,12 +66,23 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     return const [];
   }
 
+  void _captureSyncError() {
+    final store = ref.read(encryptedBlobStoreProvider);
+    if (store is SyncingEncryptedBlobStore) {
+      final error = store.lastRemoteError;
+      ref.read(vaultSyncErrorProvider.notifier).setMessage(
+        error?.toString(),
+      );
+    }
+  }
+
   Future<void> create(String masterPassword) async {
     final uid = _requireUid();
     final repository = ref.read(vaultRepositoryProvider);
     await repository.create(uid, masterPassword);
     state = AsyncData(await repository.load(uid));
     ref.invalidate(vaultExistsProvider);
+    _captureSyncError();
   }
 
   Future<void> unlock(String masterPassword) async {
@@ -67,6 +90,7 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     final repository = ref.read(vaultRepositoryProvider);
     await repository.unlock(uid, masterPassword);
     state = AsyncData(await repository.load(uid));
+    _captureSyncError();
   }
 
   Future<void> lock() async {
@@ -78,12 +102,14 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     final uid = _requireUid();
     final next = await ref.read(vaultRepositoryProvider).upsert(uid, entry);
     state = AsyncData(next);
+    _captureSyncError();
   }
 
   Future<void> delete(String id) async {
     final uid = _requireUid();
     final next = await ref.read(vaultRepositoryProvider).delete(uid, id);
     state = AsyncData(next);
+    _captureSyncError();
   }
 
   String _requireUid() {

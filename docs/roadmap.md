@@ -11,10 +11,11 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 5. **PBKDF2 + enveloppe** — mot de passe maître enveloppe la DEK ; format prêt pour Firestore.
 6. **Écran maître** — `/unlock` : créer ou déverrouiller le coffre après Google.
 7. **Sync Firestore** — copie de l’enveloppe chiffrée vers `users/{uid}/vault/current`.
+8. **UI liste** — fiches, recherche, édition, copie 30 s.
 
 ## Suivant
 
-UI liste des fiches.
+Générateur de mot de passe, puis alertes.
 
 Ensuite : générateur, alertes, biométrie, IA, login e-mail.
 

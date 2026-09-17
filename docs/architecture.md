@@ -1,6 +1,6 @@
 # Architecture actuelle
 
-SafeVault (package `flutter_pwd_container`) est un coffre de mots de passe. **Aujourd’hui** : session Google + coffre chiffré local recopié vers Firestore (pas encore d’écran de liste).
+SafeVault (package `flutter_pwd_container`) est un coffre de mots de passe. **Aujourd’hui** : session Google, mot de passe maître, liste de fiches chiffrées, copie Firestore de l’enveloppe.
 
 ## Flux de démarrage
 
@@ -40,7 +40,8 @@ sequenceDiagram
 | [`lib/src/router/app_router.dart`](../lib/src/router/app_router.dart) | Routes, garde d’auth, `routerProvider` |
 | [`lib/src/views/login_view.dart`](../lib/src/views/login_view.dart) | Écran Google Sign-In |
 | [`lib/src/views/unlock_view.dart`](../lib/src/views/unlock_view.dart) | Mot de passe maître (créer / déverrouiller) |
-| [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Page post-unlock + verrouillage / déconnexion |
+| [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Liste des fiches + recherche |
+| [`lib/src/views/entry_view.dart`](../lib/src/views/entry_view.dart) | Création / édition d’une fiche |
 | [`lib/src/models/vault_entry.dart`](../lib/src/models/vault_entry.dart) | Fiche du coffre (clair en mémoire seulement) |
 | [`lib/src/services/vault_key_derivation.dart`](../lib/src/services/vault_key_derivation.dart) | PBKDF2-HMAC-SHA256 |
 | [`lib/src/services/vault_envelope.dart`](../lib/src/services/vault_envelope.dart) | Format local = document Firestore |
@@ -55,7 +56,7 @@ sequenceDiagram
 ## Couches
 
 ```
-Vues (LoginView, UnlockView, HomeView)
+Vues (LoginView, UnlockView, HomeView, EntryView)
         ↓ ref.read / ref.watch
 Providers Riverpod (session, coffre)
         ↓

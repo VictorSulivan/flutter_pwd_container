@@ -150,21 +150,87 @@ class SafeVaultPrimaryButton extends StatelessWidget {
 }
 
 class SafeVaultCard extends StatelessWidget {
-  const SafeVaultCard({super.key, required this.child});
+  const SafeVaultCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.fromLTRB(22, 20, 22, 28),
+    this.borderRadius = 28,
+  });
 
   final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 20, 22, 28),
+        padding: padding,
         child: child,
+      ),
+    );
+  }
+}
+
+class SafeVaultTextField extends StatelessWidget {
+  const SafeVaultTextField({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.obscureText = false,
+    this.onToggleObscure,
+    this.keyboardType,
+    this.textInputAction,
+    this.onSubmitted,
+    this.onChanged,
+    this.prefixIcon,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final bool obscureText;
+  final VoidCallback? onToggleObscure;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
+  final Widget? prefixIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      onChanged: onChanged,
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: prefixIcon,
+        filled: true,
+        fillColor: AppColors.iconWell,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        suffixIcon: onToggleObscure == null
+            ? null
+            : IconButton(
+                onPressed: onToggleObscure,
+                icon: Icon(
+                  obscureText
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off,
+                ),
+              ),
       ),
     );
   }

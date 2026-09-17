@@ -71,7 +71,9 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 
 `AsyncNotifier<List<VaultEntry>>`. Sans mot de passe maître : liste vide. `create` / `unlock` chargent les fiches. Logout → `lock()`.
 
-Les écrans feront `ref.watch(vaultEntriesProvider)` (étape UI liste). Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
+Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
+
+`vaultSyncErrorProvider` : dernière erreur Firestore, affichée en bandeau (le coffre local continue).
 
 Détail du stockage : [`vault.md`](vault.md).
 
@@ -85,4 +87,4 @@ Détail du stockage : [`vault.md`](vault.md).
 
 ## Ce qui viendra
 
-L’UI coffre (liste / édition). Le générateur. Les alertes. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.
+Le générateur. Les alertes. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.

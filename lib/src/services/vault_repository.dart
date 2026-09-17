@@ -7,6 +7,7 @@ import 'vault_cipher.dart';
 import 'vault_envelope.dart';
 import 'vault_key_derivation.dart';
 import 'vault_storage.dart';
+import 'vault_sync.dart';
 
 class VaultRepository {
   VaultRepository({
@@ -68,10 +69,10 @@ class VaultRepository {
       ciphertext: ciphertext,
       updatedAt: DateTime.now().toUtc(),
     );
-    await blobStore.write(userId, envelope.toBytes());
     _unlockedUserId = userId;
     _dek = dek;
     _envelope = envelope;
+    await _writeEnvelope(userId, envelope);
   }
 
   Future<void> unlock(String userId, String masterPassword) async {
@@ -97,6 +98,7 @@ class VaultRepository {
     _unlockedUserId = userId;
     _dek = await cipher.keyFromBytes(dekBytes);
     _envelope = envelope;
+    await _writeEnvelope(userId, envelope);
   }
 
   Future<List<VaultEntry>> load(String userId) async {
@@ -147,8 +149,16 @@ class VaultRepository {
       ciphertext: ciphertext,
       updatedAt: DateTime.now().toUtc(),
     );
-    await blobStore.write(userId, next.toBytes());
     _envelope = next;
+    await _writeEnvelope(userId, next);
+  }
+
+  Future<void> _writeEnvelope(String userId, VaultEnvelope envelope) async {
+    try {
+      await blobStore.write(userId, envelope.toBytes());
+    } on VaultSyncException {
+      // Fichier local déjà écrit. La copie Firestore est retentée au prochain unlock.
+    }
   }
 
   SecretKey _requireDek(String userId) {

@@ -98,11 +98,26 @@ Sans le **mot de passe maître**, ces bytes ne s’ouvrent pas, même avec un ac
 
 Comportement client (`SyncingEncryptedBlobStore`) :
 
-- `create` / `upsert` / `delete` : fichier local d’abord, puis copie Firestore.
+- `create` / `unlock` / `upsert` / `delete` : fichier local d’abord, puis copie Firestore.
+- un coffre **déjà local** (créé avant le sync) est poussé au déverrouillage.
+- si Firestore refuse, le coffre local reste utilisable et l’app affiche l’erreur en bandeau.
 - `exists` / `unlock` : si le fichier local manque, on tire le document distant.
-- conflit : l’enveloppe avec le `updatedAt` le plus récent gagne, puis on recopie vers l’autre côté.
-- Firestore down **et** fichier local présent : on continue hors-ligne.
-- Firestore down **et** pas de fichier local : erreur (on n’affiche pas « Créer le coffre », pour ne pas écraser un coffre existant ailleurs).
+- conflit : l’enveloppe avec le `updatedAt` le plus récent gagne.
+- Firestore down **et** pas de fichier local : erreur (on n’affiche pas « Créer le coffre »).
+
+## Où le voir dans la console
+
+Le document n’est **pas** à la racine, et le parent `users/{uid}` n’a souvent **pas de champs** (ligne en *italique*).
+
+1. [Firestore](https://console.firebase.google.com/project/flutter-pwd-container/firestore) → base **(default)**.
+2. Collection `users`.
+3. Document **ton uid** (parfois gris / italique).
+4. Sous-collection `vault`.
+5. Document `current` : `salt`, `wrappedDek`, `ciphertext`, `updatedAt`.
+
+Pas de mot de passe en clair. Realtime Database reste vide (on ne l’utilise pas).
+
+Si `permission-denied` : recoller [`firestore.rules`](../firestore.rules) et **Publier**, puis dans l’app **verrouiller / déverrouiller**.
 
 ## 6. Contrôle rapide
 
@@ -117,4 +132,4 @@ Dans **Règles** → **Playground** (ou simulateur) :
 1. Fait : PBKDF2 + enveloppe locale.
 2. Fait : écran mot de passe maître (`/unlock`).
 3. Fait : `cloud_firestore` copie l’enveloppe (pas les secrets en clair).
-4. Ensuite : UI liste des fiches.
+4. Ensuite : UI liste des fiches (fait).

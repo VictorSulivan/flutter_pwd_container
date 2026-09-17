@@ -41,7 +41,7 @@ Même forme que le document Firestore `users/{uid}/vault/current`. Détail : [`f
 
 `vaultEntriesProvider` : sans maître → liste vide (verrouillé). Logout → `lock()`.
 
-L’écran [`unlock_view.dart`](../lib/src/views/unlock_view.dart) crée le coffre (premier lancement) ou le déverrouille. Le bouton cadenas de `HomeView` rappelle `lock()` puis `/unlock`.
+L’écran [`unlock_view.dart`](../lib/src/views/unlock_view.dart) crée le coffre (premier lancement) ou le déverrouille. Le bouton cadenas de `HomeView` rappelle `lock()` puis `/unlock`. La liste et l’édition sont dans `HomeView` / `EntryView`.
 
 ## Fiches (`VaultEntry`)
 
