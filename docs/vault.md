@@ -38,6 +38,8 @@ Même forme que le futur document Firestore. Détail console : [`firebase-sync.m
 
 `vaultEntriesProvider` : sans maître → liste vide (verrouillé). Logout → `lock()`.
 
+L’écran [`unlock_view.dart`](../lib/src/views/unlock_view.dart) crée le coffre (premier lancement) ou le déverrouille. Le bouton cadenas de `HomeView` rappelle `lock()` puis `/unlock`.
+
 ## Fiches (`VaultEntry`)
 
 Toujours : service, URL, identifiant, mot de passe, dates. Clair **uniquement en mémoire** après unlock.

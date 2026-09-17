@@ -63,11 +63,13 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 
 `App` est un `ConsumerWidget` qui fait `ref.watch(routerProvider)` : le `GoRouter` est stable tant que le repository d’auth ne change pas.
 
-### `vaultEntriesProvider`
+### `vaultExistsProvider` / `vaultEntriesProvider`
+
+`vaultExistsProvider` : le coffre a-t-il déjà une enveloppe pour cet `uid` ? Sert à choisir « Créer » vs « Déverrouiller ».
 
 `AsyncNotifier<List<VaultEntry>>`. Sans mot de passe maître : liste vide. `create` / `unlock` chargent les fiches. Logout → `lock()`.
 
-Les écrans feront `ref.watch(vaultEntriesProvider)` (étape UI). Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
+Les écrans feront `ref.watch(vaultEntriesProvider)` (étape UI liste). Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
 
 Détail du stockage : [`vault.md`](vault.md).
 

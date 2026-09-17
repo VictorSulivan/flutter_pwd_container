@@ -91,6 +91,6 @@ Dans **Règles** → **Playground** (ou simulateur) :
 
 ## Suite dans le code
 
-1. Fait : PBKDF2 + enveloppe locale (même forme que le document ci-dessus).
-2. Ensuite : écran mot de passe maître (créer / déverrouiller).
-3. Ensuite : package `cloud_firestore` + upload/download de cette enveloppe.
+1. Fait : PBKDF2 + enveloppe locale.
+2. Fait : écran mot de passe maître (`/unlock`).
+3. Ensuite : package `cloud_firestore` + upload/download de l’enveloppe.

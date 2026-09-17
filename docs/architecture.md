@@ -20,7 +20,9 @@ sequenceDiagram
   Router->>Auth: currentUser / authStateChanges
   alt pas de session
     Router->>Router: redirect /login
-  else session active
+  else session et coffre verrouillé
+    Router->>Router: redirect /unlock
+  else session et coffre ouvert
     Router->>Router: rester sur /
   end
 ```
@@ -37,7 +39,8 @@ sequenceDiagram
 | [`lib/src/providers/auth_providers.dart`](../lib/src/providers/auth_providers.dart) | Exposition Riverpod du repository et du stream de session |
 | [`lib/src/router/app_router.dart`](../lib/src/router/app_router.dart) | Routes, garde d’auth, `routerProvider` |
 | [`lib/src/views/login_view.dart`](../lib/src/views/login_view.dart) | Écran Google Sign-In |
-| [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Page vide post-login + déconnexion |
+| [`lib/src/views/unlock_view.dart`](../lib/src/views/unlock_view.dart) | Mot de passe maître (créer / déverrouiller) |
+| [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Page post-unlock + verrouillage / déconnexion |
 | [`lib/src/models/vault_entry.dart`](../lib/src/models/vault_entry.dart) | Fiche du coffre (clair en mémoire seulement) |
 | [`lib/src/services/vault_key_derivation.dart`](../lib/src/services/vault_key_derivation.dart) | PBKDF2-HMAC-SHA256 |
 | [`lib/src/services/vault_envelope.dart`](../lib/src/services/vault_envelope.dart) | Format local = futur document Firestore |
@@ -50,7 +53,7 @@ sequenceDiagram
 ## Couches
 
 ```
-Vues (LoginView, HomeView)
+Vues (LoginView, UnlockView, HomeView)
         ↓ ref.read / ref.watch
 Providers Riverpod (session, coffre)
         ↓
@@ -64,6 +67,6 @@ Les vues ne parlent pas à Firebase directement. Ça permet de tester un écran 
 ## Ce qui ne vit pas dans les widgets
 
 - L’initialisation Firebase : une seule fois dans `main()`, avant le premier frame.
-- La décision « login ou coffre » : dans `GoRouter.redirect`, pas dans un `if` au milieu de `LoginView`.
+- La décision « login, maître ou coffre » : dans `GoRouter.redirect`, pas dans un `if` au milieu des vues.
 - L’état de session : dans `authStateChanges()`, pas dans un `bool _loggedIn` local.
 - Les secrets au repos : enveloppe PBKDF2 + AES-GCM, jamais un JSON de mots de passe en clair.

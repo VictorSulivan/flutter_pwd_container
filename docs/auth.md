@@ -2,7 +2,7 @@
 
 Objectif actuel : **une identité Firebase**, obtenue via **Google**, qui ouvre ou ferme l’accès aux routes.
 
-Les mots de passe du coffre ne transiteront **jamais** par Firebase Auth. Auth = « qui es-tu ? ». Coffre = données chiffrées **locales** (étape suivante).
+Les mots de passe du coffre ne transiteront **jamais** par Firebase Auth. Auth = « qui es-tu ? ». Le mot de passe maître = « qui peut lire le coffre ? ».
 
 ## Firebase Core
 
@@ -48,19 +48,23 @@ Le fichier s’appelle encore `auth_service.dart` (historique). La classe s’ap
 
 ## GoRouter
 
-Deux routes :
+Trois routes :
 
 | Chemin | Écran | Accès |
 | --- | --- | --- |
 | `/login` | `LoginView` | uniquement **sans** session |
-| `/` | `HomeView` | uniquement **avec** session |
+| `/unlock` | `UnlockView` | session **et** coffre verrouillé |
+| `/` | `HomeView` | session **et** coffre déverrouillé |
 
 `redirect` :
 
-- pas connecté + autre chose que `/login` → `/login` ;
-- connecté + encore sur `/login` → `/`.
+- pas connecté → `/login` ;
+- connecté + coffre verrouillé → `/unlock` ;
+- déverrouillé + encore sur `/unlock` ou `/login` → `/`.
 
-On ne fait **pas** `context.go('/')` après un Google réussi : Firebase émet un `authStateChanges`, `_AuthRefresh` notifie GoRouter, `redirect` envoie tout seul vers le coffre. Un `go` manuel doublerait la navigation et casserait au refresh.
+On ne fait **pas** `context.go('/')` après un Google réussi : Firebase émet un `authStateChanges`, `_AuthRefresh` notifie GoRouter, `redirect` envoie vers `/unlock`. Un `go` manuel doublerait la navigation.
+
+Après `create` / `unlock`, on fait `context.go('/')` : le `refreshListenable` n’écoute que l’auth, pas l’état du coffre.
 
 ### Pourquoi `refreshListenable` + lecture `currentUser`
 

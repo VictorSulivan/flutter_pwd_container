@@ -9,16 +9,11 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 3. **Riverpod sur la session** — `AuthRepository`, `authStateProvider`, `routerProvider`.
 4. **Coffre (données seulement)** — `VaultEntry`, AES-256-GCM, isolation par uid.
 5. **PBKDF2 + enveloppe** — mot de passe maître enveloppe la DEK ; format prêt pour Firestore.
+6. **Écran maître** — `/unlock` : créer ou déverrouiller le coffre après Google.
 
-## Suivant (côté Firebase, à faire dans la console)
+## Suivant
 
-Voir [`firebase-sync.md`](firebase-sync.md) : créer Firestore en **production**, coller [`firestore.rules`](../firestore.rules).
-
-Puis dans le code :
-
-- écran créer / déverrouiller le coffre (mot de passe maître)
-- sync `cloud_firestore` de l’enveloppe
-- UI liste des fiches
+Sync Firestore de l’enveloppe (`cloud_firestore`), puis UI liste des fiches.
 
 Ensuite : générateur, alertes, biométrie, IA, login e-mail.
 

@@ -56,7 +56,7 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 ## D8 — Développement par petites étapes
 
-Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe (fait) → Firestore console → UI maître → sync → UI liste.
+Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître (fait) → sync → UI liste.
 
 **Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang ».
 
@@ -67,3 +67,11 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe (fait) → Firesto
 **Pourquoi :** la même enveloppe pourra être copiée vers Firestore. Une DEK seulement dans le Keystore ne se synchronise pas.
 
 **Revoir si :** web (pas de `dart:io` fichier) : autre blob store.
+
+## D11 — Mot de passe maître après Google, pas dans le login
+
+**Décision :** `/login` = Google seulement. `/unlock` = créer ou ouvrir le coffre. `HomeView` n’est accessible qu’avec un coffre déverrouillé.
+
+**Pourquoi :** l’identité Firebase et le secret du coffre n’ont pas le même rôle. Un `context.go('/')` après `create`/`unlock` est nécessaire parce que `refreshListenable` n’écoute que l’auth.
+
+**Revoir si :** on ajoute un `Listenable` coffre pour que GoRouter redirige tout seul après déverrouillage.

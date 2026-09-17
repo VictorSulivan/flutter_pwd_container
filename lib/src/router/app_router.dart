@@ -6,12 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/auth_providers.dart';
+import '../providers/vault_providers.dart';
 import '../views/home_view.dart';
 import '../views/login_view.dart';
+import '../views/unlock_view.dart';
 
 abstract final class AppRoutes {
   static const home = '/';
   static const login = '/login';
+  static const unlock = '/unlock';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -27,15 +30,23 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
     initialLocation: AppRoutes.home,
     refreshListenable: authRefresh,
     redirect: (context, state) {
+      final user = ref.read(authRepositoryProvider).currentUser;
       final loggedIn =
-          ref.read(authStateProvider).value != null ||
-          ref.read(authRepositoryProvider).currentUser != null;
-      final onLogin = state.matchedLocation == AppRoutes.login;
+          user != null || ref.read(authStateProvider).value != null;
+      final uid = user?.uid ?? ref.read(authStateProvider).value?.uid;
+      final unlocked =
+          uid != null &&
+          ref.read(vaultRepositoryProvider).isUnlockedFor(uid);
+      final location = state.matchedLocation;
 
-      if (!loggedIn && !onLogin) {
-        return AppRoutes.login;
+      if (!loggedIn) {
+        return location == AppRoutes.login ? null : AppRoutes.login;
       }
-      if (loggedIn && onLogin) {
+      if (!unlocked && location != AppRoutes.unlock) {
+        return AppRoutes.unlock;
+      }
+      if (unlocked &&
+          (location == AppRoutes.unlock || location == AppRoutes.login)) {
         return AppRoutes.home;
       }
       return null;
@@ -44,6 +55,10 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
       GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const HomeView(),
+      ),
+      GoRoute(
+        path: AppRoutes.unlock,
+        builder: (context, state) => const UnlockView(),
       ),
       GoRoute(
         path: AppRoutes.login,
