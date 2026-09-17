@@ -21,9 +21,6 @@ class HomeView extends ConsumerStatefulWidget {
 
 class _HomeViewState extends ConsumerState<HomeView> {
   final _search = TextEditingController();
-  bool _syncing = false;
-  bool _synced = false;
-  String? _uid;
 
   @override
   void initState() {
@@ -43,21 +40,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
     if (Firebase.apps.isEmpty) {
       return;
     }
-    setState(() {
-      _syncing = true;
-    });
     await ref.read(vaultEntriesProvider.notifier).syncRemote();
-    if (mounted) {
-      setState(() {
-        _syncing = false;
-        _synced = true;
-        try {
-          _uid = ref.read(authRepositoryProvider).currentUser?.uid;
-        } on Object {
-          _uid = null;
-        }
-      });
-    }
   }
 
   List<VaultEntry> _filtered(List<VaultEntry> entries) {
@@ -142,14 +125,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 88),
                         children: [
-                          _CloudStatus(
-                            uid: _uid,
-                            syncing: _syncing,
-                            synced: _synced,
-                            error: syncError,
-                            onRetry: _syncRemote,
-                          ),
-                          const SizedBox(height: 16),
+                          if (syncError != null) ...[
+                            _CloudError(
+                              onRetry: _syncRemote,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           SafeVaultTextField(
                             controller: _search,
                             label: 'Rechercher',
@@ -159,11 +140,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                           const SizedBox(height: 16),
                           if (all.isEmpty)
                             const _EmptyVault()
-                          else ...[
-                            const _GeneratorShortcut(),
-                            const SizedBox(height: 16),
-                          ],
-                          if (all.isNotEmpty && visible.isEmpty)
+                          else if (visible.isEmpty)
                             const Padding(
                               padding: EdgeInsets.only(top: 32),
                               child: Text(
@@ -191,129 +168,33 @@ class _HomeViewState extends ConsumerState<HomeView> {
   }
 }
 
-class _CloudStatus extends StatelessWidget {
-  const _CloudStatus({
-    required this.uid,
-    required this.syncing,
-    required this.synced,
-    required this.error,
-    required this.onRetry,
-  });
+class _CloudError extends StatelessWidget {
+  const _CloudError({required this.onRetry});
 
-  final String? uid;
-  final bool syncing;
-  final bool synced;
-  final String? error;
   final Future<void> Function() onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final path = uid == null
-        ? 'users/{uid}/vault/current'
-        : 'users/$uid/vault/current';
-    if (syncing) {
-      return const SafeVaultCard(
-        borderRadius: 18,
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Envoi de l’enveloppe chiffrée vers Cloud Firestore…',
-                style: TextStyle(color: AppColors.muted, fontSize: 13),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    if (error != null) {
-      return SafeVaultCard(
-        borderRadius: 18,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Coffre local OK. Cloud Firestore n’a pas le document $path.\n'
-              'Ce n’est pas Authentication ni Realtime Database.\n$error',
+    return SafeVaultCard(
+      borderRadius: 18,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'La copie cloud a échoué. Le coffre local est à jour.',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.error,
                 fontSize: 13,
                 height: 1.35,
               ),
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onRetry,
-                child: const Text('Réessayer'),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    if (!synced) {
-      return const SizedBox.shrink();
-    }
-    return SafeVaultCard(
-      borderRadius: 18,
-      padding: const EdgeInsets.all(16),
-      child: Text(
-        'Enveloppe chiffrée copiée.\n'
-        'Console : Build → Firestore Database → Données → $path\n'
-        'Le document users/{uid} est souvent en italique : ouvre-le, puis vault → current.\n'
-        'Authentication = le compte Google. Realtime Database reste vide.',
-        style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.35),
-      ),
-    );
-  }
-}
-
-class _GeneratorShortcut extends StatelessWidget {
-  const _GeneratorShortcut();
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => context.go('/generator'),
-        child: const SafeVaultCard(
-          borderRadius: 18,
-          padding: EdgeInsets.fromLTRB(14, 14, 14, 14),
-          child: Row(
-            children: [
-              Icon(Icons.casino_outlined, color: AppColors.cyan),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Générateur',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Créer un mot de passe. Rien n’est envoyé à Firebase.',
-                      style: TextStyle(color: AppColors.muted, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: AppColors.muted),
-            ],
           ),
-        ),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text('Réessayer'),
+          ),
+        ],
       ),
     );
   }
@@ -324,12 +205,12 @@ class _EmptyVault extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeVaultCard(
+    return const SafeVaultCard(
       child: Column(
         children: [
-          const SafeVaultMark(),
-          const SizedBox(height: 18),
-          const Text(
+          SafeVaultMark(),
+          SizedBox(height: 18),
+          Text(
             'Aucune fiche',
             style: TextStyle(
               fontSize: 22,
@@ -337,17 +218,11 @@ class _EmptyVault extends StatelessWidget {
               letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Ajoute un identifiant. Il est chiffré ici, puis recopié vers Firestore sans jamais partir en clair.',
+          SizedBox(height: 8),
+          Text(
+            'Ajoute un identifiant avec le bouton +.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.muted, fontSize: 14),
-          ),
-          const SizedBox(height: 20),
-          SafeVaultPrimaryButton(
-            onPressed: () => context.go('/generator'),
-            icon: const Icon(Icons.casino_outlined, size: 20),
-            label: 'Ouvrir le générateur',
           ),
         ],
       ),
