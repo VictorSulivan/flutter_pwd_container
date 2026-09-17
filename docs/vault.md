@@ -26,8 +26,11 @@ Fichier JSON (les champs sensibles sont déjà chiffrés) :
 | `salt` | Sel PBKDF2 (Base64) |
 | `wrappedDek` | DEK chiffrée AES-GCM |
 | `ciphertext` | Liste des fiches chiffrée AES-256-GCM |
+| `updatedAt` | Horodatage UTC pour le sync |
 
-Même forme que le futur document Firestore. Détail console : [`firebase-sync.md`](firebase-sync.md).
+Même forme que le document Firestore `users/{uid}/vault/current`. Détail : [`firebase-sync.md`](firebase-sync.md).
+
+`SyncingEncryptedBlobStore` tient le fichier et Firestore alignés. Hors-ligne, le fichier local suffit. Sur un nouvel appareil, `exists` / `unlock` tirent d’abord le document distant.
 
 ## API
 

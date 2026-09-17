@@ -1,8 +1,8 @@
 # Config Firebase pour le sync du coffre
 
-On n’envoie **jamais** les mots de passe en clair. Firestore ne recevra plus tard que l’enveloppe déjà chiffrée (sel PBKDF2, clé AES enveloppée, blob AES-GCM).
+On n’envoie **jamais** les mots de passe en clair. Firestore ne reçoit que l’enveloppe déjà chiffrée (sel PBKDF2, clé AES enveloppée, blob AES-GCM, horodatage).
 
-Cette page = ce que **toi** tu fais dans la console. Le client Firestore n’est pas encore branché dans l’app.
+Cette page = console Firebase **et** ce que l’app écrit maintenant : `users/{uid}/vault/current`.
 
 Projet : **flutter-pwd-container**.
 
@@ -34,8 +34,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId}/vault/{document} {
-      allow read, write: if request.auth != null
+      allow read: if request.auth != null
         && request.auth.uid == userId;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'v',
+          'kdf',
+          'iterations',
+          'salt',
+          'wrappedDek',
+          'ciphertext',
+          'updatedAt'
+        ]);
     }
 
     match /{document=**} {
@@ -52,6 +63,9 @@ Effet :
 - seul l’utilisateur connecté lit/écrit `users/{sonUid}/vault/...`
 - aucun autre chemin n’est accessible
 - un compte Google A ne voit pas le coffre de B
+- un write avec un champ hors liste (`password`, etc.) est refusé
+
+Si tu avais déjà collé l’ancienne version (read/write sans `hasOnly`), **recolle et republie**.
 
 Déploiement en CLI (après `firebase login`) :
 
@@ -66,7 +80,7 @@ firebase deploy --only firestore:rules --project flutter-pwd-container
 - Règles « test » / `allow read, write: if true`.
 - Champs `password`, `entries` en clair dans un document.
 
-## 5. Document prévu (pas encore écrit par l’app)
+## 5. Document écrit par l’app
 
 Chemin : `users/{uid}/vault/current`
 
@@ -78,8 +92,17 @@ Chemin : `users/{uid}/vault/current`
 | `salt` | Sel PBKDF2 (Base64) | non (public) |
 | `wrappedDek` | Clé AES du coffre chiffrée avec le maître | opaque |
 | `ciphertext` | Fiches AES-256-GCM | opaque |
+| `updatedAt` | Horodatage UTC (last-write-wins) | non |
 
 Sans le **mot de passe maître**, ces bytes ne s’ouvrent pas, même avec un accès console.
+
+Comportement client (`SyncingEncryptedBlobStore`) :
+
+- `create` / `upsert` / `delete` : fichier local d’abord, puis copie Firestore.
+- `exists` / `unlock` : si le fichier local manque, on tire le document distant.
+- conflit : l’enveloppe avec le `updatedAt` le plus récent gagne, puis on recopie vers l’autre côté.
+- Firestore down **et** fichier local présent : on continue hors-ligne.
+- Firestore down **et** pas de fichier local : erreur (on n’affiche pas « Créer le coffre », pour ne pas écraser un coffre existant ailleurs).
 
 ## 6. Contrôle rapide
 
@@ -93,4 +116,5 @@ Dans **Règles** → **Playground** (ou simulateur) :
 
 1. Fait : PBKDF2 + enveloppe locale.
 2. Fait : écran mot de passe maître (`/unlock`).
-3. Ensuite : package `cloud_firestore` + upload/download de l’enveloppe.
+3. Fait : `cloud_firestore` copie l’enveloppe (pas les secrets en clair).
+4. Ensuite : UI liste des fiches.

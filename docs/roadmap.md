@@ -10,10 +10,11 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 4. **Coffre (données seulement)** — `VaultEntry`, AES-256-GCM, isolation par uid.
 5. **PBKDF2 + enveloppe** — mot de passe maître enveloppe la DEK ; format prêt pour Firestore.
 6. **Écran maître** — `/unlock` : créer ou déverrouiller le coffre après Google.
+7. **Sync Firestore** — copie de l’enveloppe chiffrée vers `users/{uid}/vault/current`.
 
 ## Suivant
 
-Sync Firestore de l’enveloppe (`cloud_firestore`), puis UI liste des fiches.
+UI liste des fiches.
 
 Ensuite : générateur, alertes, biométrie, IA, login e-mail.
 

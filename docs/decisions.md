@@ -56,7 +56,7 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 ## D8 — Développement par petites étapes
 
-Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître (fait) → sync → UI liste.
+Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître → sync (fait) → UI liste.
 
 **Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang ».
 
@@ -75,3 +75,11 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 **Pourquoi :** l’identité Firebase et le secret du coffre n’ont pas le même rôle. Un `context.go('/')` après `create`/`unlock` est nécessaire parce que `refreshListenable` n’écoute que l’auth.
 
 **Revoir si :** on ajoute un `Listenable` coffre pour que GoRouter redirige tout seul après déverrouillage.
+
+## D12 — Firestore ne voit que l’enveloppe, last-write-wins
+
+**Décision :** `users/{uid}/vault/current` = même JSON que le fichier local. Pas de fiches en clair. Conflit = `updatedAt` le plus récent.
+
+**Pourquoi :** Google Sign-In ne doit pas suffire à lire le coffre. Un merge champ par champ des fiches exigerait de déchiffrer dans le cloud.
+
+**Revoir si :** deux appareils écrivent hors-ligne puis se reconnectent (un des deux perd ses dernières fiches). Un CRDT / historique de versions serait plus lourd.

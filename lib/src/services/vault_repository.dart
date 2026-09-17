@@ -66,6 +66,7 @@ class VaultRepository {
       salt: salt,
       wrappedDek: wrappedDek,
       ciphertext: ciphertext,
+      updatedAt: DateTime.now().toUtc(),
     );
     await blobStore.write(userId, envelope.toBytes());
     _unlockedUserId = userId;
@@ -144,6 +145,7 @@ class VaultRepository {
       salt: envelope.salt,
       wrappedDek: envelope.wrappedDek,
       ciphertext: ciphertext,
+      updatedAt: DateTime.now().toUtc(),
     );
     await blobStore.write(userId, next.toBytes());
     _envelope = next;

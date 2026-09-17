@@ -1,6 +1,6 @@
 # Architecture actuelle
 
-SafeVault (package `flutter_pwd_container`) est un coffre de mots de passe. **Aujourd’hui** : session Google + coffre chiffré local (données seulement, pas encore d’écran de liste).
+SafeVault (package `flutter_pwd_container`) est un coffre de mots de passe. **Aujourd’hui** : session Google + coffre chiffré local recopié vers Firestore (pas encore d’écran de liste).
 
 ## Flux de démarrage
 
@@ -43,9 +43,11 @@ sequenceDiagram
 | [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Page post-unlock + verrouillage / déconnexion |
 | [`lib/src/models/vault_entry.dart`](../lib/src/models/vault_entry.dart) | Fiche du coffre (clair en mémoire seulement) |
 | [`lib/src/services/vault_key_derivation.dart`](../lib/src/services/vault_key_derivation.dart) | PBKDF2-HMAC-SHA256 |
-| [`lib/src/services/vault_envelope.dart`](../lib/src/services/vault_envelope.dart) | Format local = futur document Firestore |
+| [`lib/src/services/vault_envelope.dart`](../lib/src/services/vault_envelope.dart) | Format local = document Firestore |
 | [`lib/src/services/vault_cipher.dart`](../lib/src/services/vault_cipher.dart) | AES-256-GCM |
 | [`lib/src/services/vault_storage.dart`](../lib/src/services/vault_storage.dart) | Fichier `.enc` (ou mémoire en test) |
+| [`lib/src/services/vault_remote.dart`](../lib/src/services/vault_remote.dart) | Lecture / écriture `users/{uid}/vault/current` |
+| [`lib/src/services/vault_sync.dart`](../lib/src/services/vault_sync.dart) | Last-write-wins local ↔ Firestore |
 | [`lib/src/services/vault_repository.dart`](../lib/src/services/vault_repository.dart) | load / upsert / delete par `uid` |
 | [`lib/src/providers/vault_providers.dart`](../lib/src/providers/vault_providers.dart) | `vaultEntriesProvider` |
 | [`android/app/google-services.json`](../android/app/google-services.json) | Config native Android (plugin Google Services) |
@@ -59,7 +61,7 @@ Providers Riverpod (session, coffre)
         ↓
 Repositories (AuthRepository, VaultRepository)
         ↓
-SDK (Firebase Auth, Google Sign-In, fichier enveloppe chiffrée)
+SDK (Firebase Auth, Google Sign-In, fichier + Firestore enveloppe chiffrée)
 ```
 
 Les vues ne parlent pas à Firebase directement. Ça permet de tester un écran sans Firebase, et de changer d’implémentation (ex. fake auth en test) sans retoucher l’UI.

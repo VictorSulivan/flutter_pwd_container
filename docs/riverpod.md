@@ -65,7 +65,9 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 
 ### `vaultExistsProvider` / `vaultEntriesProvider`
 
-`vaultExistsProvider` : le coffre a-t-il déjà une enveloppe pour cet `uid` ? Sert à choisir « Créer » vs « Déverrouiller ».
+`vaultExistsProvider` : le coffre a-t-il déjà une enveloppe pour cet `uid` (fichier local **ou** Firestore) ? Sert à choisir « Créer » vs « Déverrouiller ».
+
+`encryptedBlobStoreProvider` : `SyncingEncryptedBlobStore` (fichier + `FirestoreVaultRemoteStore`). Les tests injectent un remote mémoire.
 
 `AsyncNotifier<List<VaultEntry>>`. Sans mot de passe maître : liste vide. `create` / `unlock` chargent les fiches. Logout → `lock()`.
 

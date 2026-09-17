@@ -3,8 +3,19 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Blob chiffré uniquement. Interdit tout le reste.
     match /users/{userId}/vault/{document} {
-      allow read, write: if request.auth != null
+      allow read: if request.auth != null
         && request.auth.uid == userId;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'v',
+          'kdf',
+          'iterations',
+          'salt',
+          'wrappedDek',
+          'ciphertext',
+          'updatedAt'
+        ]);
     }
 
     match /{document=**} {

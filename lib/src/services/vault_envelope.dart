@@ -9,9 +9,14 @@ class VaultEnvelope {
     required this.salt,
     required this.wrappedDek,
     required this.ciphertext,
+    required this.updatedAt,
   });
 
   static const currentVersion = 2;
+  static final DateTime unknownUpdatedAt = DateTime.fromMillisecondsSinceEpoch(
+    0,
+    isUtc: true,
+  );
 
   final int version;
   final String kdf;
@@ -19,35 +24,33 @@ class VaultEnvelope {
   final Uint8List salt;
   final Uint8List wrappedDek;
   final Uint8List ciphertext;
+  final DateTime updatedAt;
 
   factory VaultEnvelope.fromBytes(Uint8List bytes) {
     final decoded = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+    return VaultEnvelope.fromJson(decoded);
+  }
+
+  factory VaultEnvelope.fromJson(Map<String, dynamic> decoded) {
+    final updatedAtRaw = decoded['updatedAt'] as String?;
     return VaultEnvelope(
       version: decoded['v'] as int,
       kdf: decoded['kdf'] as String,
-      iterations: decoded['iterations'] as int,
+      iterations: (decoded['iterations'] as num).toInt(),
       salt: base64Decode(decoded['salt'] as String),
       wrappedDek: base64Decode(decoded['wrappedDek'] as String),
       ciphertext: base64Decode(decoded['ciphertext'] as String),
+      updatedAt: updatedAtRaw == null
+          ? unknownUpdatedAt
+          : DateTime.parse(updatedAtRaw).toUtc(),
     );
   }
 
-  Uint8List toBytes() {
-    return Uint8List.fromList(
-      utf8.encode(
-        jsonEncode({
-          'v': version,
-          'kdf': kdf,
-          'iterations': iterations,
-          'salt': base64Encode(salt),
-          'wrappedDek': base64Encode(wrappedDek),
-          'ciphertext': base64Encode(ciphertext),
-        }),
-      ),
-    );
+  factory VaultEnvelope.fromFirestoreMap(Map<String, dynamic> data) {
+    return VaultEnvelope.fromJson(data);
   }
 
-  Map<String, dynamic> toFirestoreMap() {
+  Map<String, dynamic> toJson() {
     return {
       'v': version,
       'kdf': kdf,
@@ -55,8 +58,15 @@ class VaultEnvelope {
       'salt': base64Encode(salt),
       'wrappedDek': base64Encode(wrappedDek),
       'ciphertext': base64Encode(ciphertext),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
     };
   }
+
+  Uint8List toBytes() {
+    return Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
+  }
+
+  Map<String, dynamic> toFirestoreMap() => toJson();
 }
 
 class VaultLockedException implements Exception {

@@ -1,12 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/vault_entry.dart';
+import '../services/vault_remote.dart';
 import '../services/vault_repository.dart';
 import '../services/vault_storage.dart';
+import '../services/vault_sync.dart';
 import 'auth_providers.dart';
 
+final vaultRemoteStoreProvider = Provider<VaultRemoteStore>((ref) {
+  return FirestoreVaultRemoteStore();
+});
+
 final encryptedBlobStoreProvider = Provider<EncryptedBlobStore>((ref) {
-  return FileEncryptedBlobStore();
+  return SyncingEncryptedBlobStore(
+    local: FileEncryptedBlobStore(),
+    remote: ref.watch(vaultRemoteStoreProvider),
+  );
 });
 
 final vaultRepositoryProvider = Provider<VaultRepository>((ref) {
