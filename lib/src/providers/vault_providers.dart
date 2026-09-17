@@ -93,6 +93,17 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     _captureSyncError();
   }
 
+  Future<void> syncRemote() async {
+    try {
+      final uid = _requireUid();
+      await ref.read(vaultRepositoryProvider).pushRemote(uid);
+    } on Object catch (error) {
+      ref.read(vaultSyncErrorProvider.notifier).setMessage(error.toString());
+      return;
+    }
+    _captureSyncError();
+  }
+
   Future<void> lock() async {
     ref.read(vaultRepositoryProvider).lock();
     state = const AsyncData([]);

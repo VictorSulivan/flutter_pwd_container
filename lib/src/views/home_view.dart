@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,11 +21,43 @@ class HomeView extends ConsumerStatefulWidget {
 
 class _HomeViewState extends ConsumerState<HomeView> {
   final _search = TextEditingController();
+  bool _syncing = false;
+  bool _synced = false;
+  String? _uid;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_syncRemote());
+    });
+  }
 
   @override
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  Future<void> _syncRemote() async {
+    if (Firebase.apps.isEmpty) {
+      return;
+    }
+    setState(() {
+      _syncing = true;
+    });
+    await ref.read(vaultEntriesProvider.notifier).syncRemote();
+    if (mounted) {
+      setState(() {
+        _syncing = false;
+        _synced = true;
+        try {
+          _uid = ref.read(authRepositoryProvider).currentUser?.uid;
+        } on Object {
+          _uid = null;
+        }
+      });
+    }
   }
 
   List<VaultEntry> _filtered(List<VaultEntry> entries) {
@@ -102,10 +137,14 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 88),
                         children: [
-                          if (syncError != null) ...[
-                            _SyncBanner(message: syncError),
-                            const SizedBox(height: 16),
-                          ],
+                          _CloudStatus(
+                            uid: _uid,
+                            syncing: _syncing,
+                            synced: _synced,
+                            error: syncError,
+                            onRetry: _syncRemote,
+                          ),
+                          const SizedBox(height: 16),
                           SafeVaultTextField(
                             controller: _search,
                             label: 'Rechercher',
@@ -143,25 +182,81 @@ class _HomeViewState extends ConsumerState<HomeView> {
   }
 }
 
-class _SyncBanner extends StatelessWidget {
-  const _SyncBanner({required this.message});
+class _CloudStatus extends StatelessWidget {
+  const _CloudStatus({
+    required this.uid,
+    required this.syncing,
+    required this.synced,
+    required this.error,
+    required this.onRetry,
+  });
 
-  final String message;
+  final String? uid;
+  final bool syncing;
+  final bool synced;
+  final String? error;
+  final Future<void> Function() onRetry;
 
   @override
   Widget build(BuildContext context) {
+    final path = uid == null ? 'users/{uid}/vault/current' : 'users/$uid/vault/current';
+    if (syncing) {
+      return const SafeVaultCard(
+        borderRadius: 18,
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Envoi vers Firestore…',
+                style: TextStyle(color: AppColors.muted, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (error != null) {
+      return SafeVaultCard(
+        borderRadius: 18,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Coffre local OK. Firestore n’a pas reçu $path :\n$error',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 13,
+                height: 1.35,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onRetry,
+                child: const Text('Réessayer'),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (!synced) {
+      return const SizedBox.shrink();
+    }
     return SafeVaultCard(
       borderRadius: 18,
       padding: const EdgeInsets.all(16),
       child: Text(
-        'Coffre local OK. Copie Firestore impossible : $message\n'
-        'Ouvre Firestore → users → (ton uid, parfois en italique) → vault → current. '
-        'Republie firestore.rules si permission-denied, puis verrouille/déverrouille.',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.error,
-          fontSize: 13,
-          height: 1.35,
-        ),
+        'Copié sur Firestore : $path\nRafraîchis l’onglet Données (pas Realtime Database).',
+        style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.35),
       ),
     );
   }

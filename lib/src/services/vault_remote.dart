@@ -41,7 +41,9 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
 
   @override
   Future<VaultEnvelope?> read(String userId) async {
-    final snapshot = await _doc(userId).get();
+    final snapshot = await _doc(userId).get(
+      const GetOptions(source: Source.server),
+    );
     final data = snapshot.data();
     if (!snapshot.exists || data == null || data.isEmpty) {
       return null;
@@ -50,7 +52,15 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
   }
 
   @override
-  Future<void> write(String userId, VaultEnvelope envelope) {
-    return _doc(userId).set(envelope.toFirestoreMap());
+  Future<void> write(String userId, VaultEnvelope envelope) async {
+    final doc = _doc(userId);
+    await doc.set(envelope.toFirestoreMap());
+    await _firestore.waitForPendingWrites();
+    final confirmed = await doc.get(const GetOptions(source: Source.server));
+    if (!confirmed.exists) {
+      throw StateError(
+        'Firestore n’a pas confirmé users/$userId/vault/current',
+      );
+    }
   }
 }

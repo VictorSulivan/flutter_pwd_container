@@ -153,6 +153,14 @@ class VaultRepository {
     await _writeEnvelope(userId, next);
   }
 
+  Future<void> pushRemote(String userId) async {
+    final envelope = _envelope;
+    if (!isUnlockedFor(userId) || envelope == null) {
+      throw const VaultLockedException();
+    }
+    await _writeEnvelope(userId, envelope);
+  }
+
   Future<void> _writeEnvelope(String userId, VaultEnvelope envelope) async {
     try {
       await blobStore.write(userId, envelope.toBytes());
