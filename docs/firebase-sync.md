@@ -99,9 +99,10 @@ Sans le **mot de passe maître**, ces bytes ne s’ouvrent pas, même avec un ac
 Comportement client (`SyncingEncryptedBlobStore`) :
 
 - `create` / `unlock` / `upsert` / `delete` : fichier local d’abord, puis copie Firestore **confirmée par le serveur**.
-- un coffre **déjà local** est poussé au déverrouillage **et** à l’ouverture de l’écran coffre (bouton Réessayer).
+- bouton **Synchroniser** (coffre ouvert) : compare fichier, mémoire et Firestore, garde l’enveloppe la plus récente, recopie les deux côtés, relit la liste.
+- un coffre **déjà local** est aussi poussé au déverrouillage.
 - le cache Firestore est coupé : une écriture « OK » en local ne suffit plus, le document doit exister côté serveur.
-- si Firestore refuse, le coffre local reste utilisable et l’app affiche l’erreur.
+- si Firestore refuse, le coffre local reste utilisable ; l’app propose **Réessayer**.
 - `exists` / `unlock` : si le fichier local manque, on tire le document distant **depuis le serveur**.
 - conflit : l’enveloppe avec le `updatedAt` le plus récent gagne.
 - Firestore down **et** pas de fichier local : erreur (on n’affiche pas « Créer le coffre »).

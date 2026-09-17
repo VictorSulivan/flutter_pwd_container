@@ -38,6 +38,7 @@ Même forme que le document Firestore `users/{uid}/vault/current`. Détail : [`f
 - `unlock(uid, maître)` — déverrouille
 - `lock()` — oublie la DEK en RAM
 - `load` / `upsert` / `delete` — exigent un coffre déverrouillé
+- `syncBothWays` — last-write-wins entre le fichier local et Firestore, puis relit les fiches
 
 `vaultEntriesProvider` : sans maître → liste vide (verrouillé). Logout → `lock()`.
 

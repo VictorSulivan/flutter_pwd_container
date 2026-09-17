@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/vault_entry.dart';
+import '../services/vault_envelope.dart';
 import '../services/vault_remote.dart';
 import '../services/vault_repository.dart';
 import '../services/vault_storage.dart';
@@ -71,7 +72,9 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     if (store is SyncingEncryptedBlobStore) {
       final error = store.lastRemoteError;
       ref.read(vaultSyncErrorProvider.notifier).setMessage(
-        error?.toString(),
+        error == null
+            ? null
+            : 'La copie cloud a échoué. Le coffre local est à jour.',
       );
     }
   }
@@ -96,12 +99,18 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   Future<void> syncRemote() async {
     try {
       final uid = _requireUid();
-      await ref.read(vaultRepositoryProvider).pushRemote(uid);
-    } on Object catch (error) {
-      ref.read(vaultSyncErrorProvider.notifier).setMessage(error.toString());
+      final entries = await ref.read(vaultRepositoryProvider).syncBothWays(uid);
+      state = AsyncData(entries);
+    } on VaultEnvelopeMismatchException catch (error) {
+      ref.read(vaultSyncErrorProvider.notifier).setMessage(error.message);
+      return;
+    } on Object {
+      ref.read(vaultSyncErrorProvider.notifier).setMessage(
+        'La copie cloud a échoué. Le coffre local est à jour.',
+      );
       return;
     }
-    _captureSyncError();
+    ref.read(vaultSyncErrorProvider.notifier).setMessage(null);
   }
 
   Future<void> lock() async {

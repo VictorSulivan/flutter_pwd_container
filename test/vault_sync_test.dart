@@ -113,6 +113,61 @@ void main() {
     );
   });
 
+  test('reconcile aligne local et remote sur l’enveloppe la plus récente', () async {
+    final local = MemoryEncryptedBlobStore();
+    final remote = MemoryVaultRemoteStore();
+    final store = SyncingEncryptedBlobStore(local: local, remote: remote);
+    final older = envelope(
+      updatedAt: DateTime.utc(2026, 1, 1),
+      payload: 'old',
+    );
+    final newer = envelope(
+      updatedAt: DateTime.utc(2026, 2, 1),
+      payload: 'new',
+    );
+    await local.write('user-a', older.toBytes());
+    await remote.write('user-a', newer);
+
+    final winner = await store.reconcile('user-a', older);
+
+    expect(utf8.decode(winner.ciphertext), 'new');
+    expect(
+      utf8.decode(VaultEnvelope.fromBytes((await local.read('user-a'))!).ciphertext),
+      'new',
+    );
+  });
+
+  test('reconcile n’écrase pas le local si le cloud est illisible', () async {
+    final local = MemoryEncryptedBlobStore();
+    final remote = MemoryVaultRemoteStore();
+    final store = SyncingEncryptedBlobStore(local: local, remote: remote);
+    final older = envelope(
+      updatedAt: DateTime.utc(2026, 1, 1),
+      payload: 'old',
+    );
+    final newer = envelope(
+      updatedAt: DateTime.utc(2026, 2, 1),
+      payload: 'new',
+    );
+    await local.write('user-a', older.toBytes());
+    await remote.write('user-a', newer);
+
+    await expectLater(
+      store.reconcile(
+        'user-a',
+        older,
+        ensureReadable: (_) async {
+          throw StateError('illisible');
+        },
+      ),
+      throwsA(isA<StateError>()),
+    );
+    expect(
+      utf8.decode(VaultEnvelope.fromBytes((await local.read('user-a'))!).ciphertext),
+      'old',
+    );
+  });
+
   test('sans copie locale, un remote HS n’invente pas un coffre vide', () async {
     final store = SyncingEncryptedBlobStore(
       local: MemoryEncryptedBlobStore(),

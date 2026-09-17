@@ -73,7 +73,9 @@ Il crée **un** `GoRouter` et un `_AuthRefresh`. `ref.onDispose` coupe le stream
 
 Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : `ref.read(vaultEntriesProvider.notifier).upsert(...)`.
 
-`vaultSyncErrorProvider` : dernière erreur Firestore, affichée en bandeau (le coffre local continue).
+`vaultEntriesProvider.notifier.syncRemote()` : bouton **Synchroniser** — last-write-wins local ↔ Firestore, puis recharge la liste.
+
+`vaultSyncErrorProvider` : dernière erreur de copie cloud, affichée en bandeau (le coffre local continue).
 
 Détail du stockage : [`vault.md`](vault.md).
 

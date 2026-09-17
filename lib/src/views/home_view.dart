@@ -21,6 +21,7 @@ class HomeView extends ConsumerStatefulWidget {
 
 class _HomeViewState extends ConsumerState<HomeView> {
   final _search = TextEditingController();
+  bool _syncing = false;
 
   @override
   void initState() {
@@ -36,11 +37,26 @@ class _HomeViewState extends ConsumerState<HomeView> {
     super.dispose();
   }
 
-  Future<void> _syncRemote() async {
-    if (Firebase.apps.isEmpty) {
+  Future<void> _syncRemote({bool fromUser = false}) async {
+    if (Firebase.apps.isEmpty || _syncing) {
       return;
     }
+    setState(() {
+      _syncing = true;
+    });
     await ref.read(vaultEntriesProvider.notifier).syncRemote();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _syncing = false;
+    });
+    final failed = ref.read(vaultSyncErrorProvider) != null;
+    if (fromUser && !failed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Coffre synchronisé')),
+      );
+    }
   }
 
   List<VaultEntry> _filtered(List<VaultEntry> entries) {
@@ -127,7 +143,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         children: [
                           if (syncError != null) ...[
                             _CloudError(
-                              onRetry: _syncRemote,
+                              message: syncError,
+                              onRetry: () => _syncRemote(fromUser: true),
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -136,6 +153,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
                             label: 'Rechercher',
                             prefixIcon: const Icon(Icons.search),
                             onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 12),
+                          _SyncButton(
+                            syncing: _syncing,
+                            onPressed: () => unawaited(
+                              _syncRemote(fromUser: true),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           if (all.isEmpty)
@@ -169,8 +193,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
 }
 
 class _CloudError extends StatelessWidget {
-  const _CloudError({required this.onRetry});
+  const _CloudError({
+    required this.message,
+    required this.onRetry,
+  });
 
+  final String message;
   final Future<void> Function() onRetry;
 
   @override
@@ -182,7 +210,7 @@ class _CloudError extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'La copie cloud a échoué. Le coffre local est à jour.',
+              message,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.error,
                 fontSize: 13,
@@ -195,6 +223,42 @@ class _CloudError extends StatelessWidget {
             child: const Text('Réessayer'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SyncButton extends StatelessWidget {
+  const _SyncButton({
+    required this.syncing,
+    required this.onPressed,
+  });
+
+  final bool syncing;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: syncing ? null : onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.cyan,
+          side: const BorderSide(color: AppColors.cardBorder),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        icon: syncing
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.cloud_sync_outlined, size: 20),
+        label: Text(syncing ? 'Synchronisation…' : 'Synchroniser'),
       ),
     );
   }

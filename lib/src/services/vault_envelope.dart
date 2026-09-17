@@ -88,3 +88,15 @@ class VaultPasswordException implements Exception {
   @override
   String toString() => message;
 }
+
+class VaultEnvelopeMismatchException implements Exception {
+  const VaultEnvelopeMismatchException([
+    this.message =
+        'Le coffre cloud ne correspond pas à celui de cet appareil. Verrouille, puis déverrouille.',
+  ]);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}

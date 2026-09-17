@@ -161,6 +161,35 @@ class VaultRepository {
     await blobStore.write(userId, envelope.toBytes());
   }
 
+  /// Aligne le fichier local et le cloud, last-write-wins, puis relit les fiches.
+  Future<List<VaultEntry>> syncBothWays(String userId) async {
+    final envelope = _envelope;
+    final dek = _dek;
+    if (!isUnlockedFor(userId) || envelope == null || dek == null) {
+      throw const VaultLockedException();
+    }
+
+    final store = blobStore;
+    if (store is SyncingEncryptedBlobStore) {
+      final winner = await store.reconcile(
+        userId,
+        envelope,
+        ensureReadable: (candidate) async {
+          try {
+            await cipher.decrypt(candidate.ciphertext, dek);
+          } on Object {
+            throw const VaultEnvelopeMismatchException();
+          }
+        },
+      );
+      _envelope = winner;
+      return load(userId);
+    }
+
+    await store.write(userId, envelope.toBytes());
+    return load(userId);
+  }
+
   Future<void> _writeEnvelope(String userId, VaultEnvelope envelope) async {
     try {
       await blobStore.write(userId, envelope.toBytes());

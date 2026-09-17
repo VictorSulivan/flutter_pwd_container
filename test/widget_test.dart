@@ -36,6 +36,7 @@ void main() {
     expect(find.text('Créer le coffre'), findsWidgets);
     expect(find.text('Mot de passe maître'), findsOneWidget);
     expect(find.text('Générateur'), findsNothing);
+    expect(find.text('Synchroniser'), findsNothing);
   });
 
   testWidgets('affiche le formulaire de déverrouillage si le coffre existe', (
@@ -70,6 +71,7 @@ void main() {
     expect(find.text('Aucune fiche'), findsOneWidget);
     expect(find.byTooltip('Ajouter une fiche'), findsOneWidget);
     expect(find.text('Générer'), findsOneWidget);
+    expect(find.text('Synchroniser'), findsOneWidget);
     expect(find.text('Ouvrir le générateur'), findsNothing);
   });
 
@@ -87,6 +89,7 @@ void main() {
     expect(find.text('GitHub'), findsOneWidget);
     expect(find.text('orion'), findsOneWidget);
     expect(find.text('Générer'), findsOneWidget);
+    expect(find.text('Synchroniser'), findsOneWidget);
     expect(find.text('Générateur'), findsNothing);
   });
 

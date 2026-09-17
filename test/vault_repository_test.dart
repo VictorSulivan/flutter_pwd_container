@@ -120,4 +120,20 @@ void main() {
     loaded = await repository.load('user-a');
     expect(loaded, isEmpty);
   });
+
+  test('syncBothWays relit le coffre local', () async {
+    await openUser('user-a');
+    await repository.upsert(
+      'user-a',
+      VaultEntry.create(
+        serviceName: 'GitHub',
+        username: 'orion',
+        password: 's3cret',
+      ),
+    );
+
+    final synced = await repository.syncBothWays('user-a');
+    expect(synced, hasLength(1));
+    expect(synced.single.password, 's3cret');
+  });
 }

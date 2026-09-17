@@ -86,6 +86,47 @@ class SyncingEncryptedBlobStore implements EncryptedBlobStore {
     }
   }
 
+  /// Compare mémoire, fichier et cloud. Écrit le gagnant des deux côtés.
+  Future<VaultEnvelope> reconcile(
+    String userId,
+    VaultEnvelope memory, {
+    Future<void> Function(VaultEnvelope winner)? ensureReadable,
+  }) async {
+    final localEnvelope = _parseLocal(await local.read(userId));
+    final base = _newer(localEnvelope, memory);
+
+    late final VaultEnvelope? remoteEnvelope;
+    try {
+      remoteEnvelope = await remote.read(userId);
+      lastRemoteError = null;
+    } on Object catch (error) {
+      lastRemoteError = error;
+      debugPrint('Firestore read failed: $error');
+      throw VaultSyncException(error);
+    }
+
+    final winner = _newer(base, remoteEnvelope);
+    if (ensureReadable != null && !_same(memory, winner)) {
+      await ensureReadable(winner);
+    }
+
+    final bytes = winner.toBytes();
+    if (localEnvelope == null || !_same(localEnvelope, winner)) {
+      await local.write(userId, bytes);
+    }
+    if (remoteEnvelope == null || !_same(remoteEnvelope, winner)) {
+      try {
+        await remote.write(userId, winner);
+        lastRemoteError = null;
+      } on Object catch (error) {
+        lastRemoteError = error;
+        debugPrint('Firestore write failed: $error');
+        throw VaultSyncException(error);
+      }
+    }
+    return winner;
+  }
+
   VaultEnvelope? _parseLocal(Uint8List? bytes) {
     if (bytes == null || bytes.isEmpty) {
       return null;
