@@ -87,4 +87,4 @@ Détail du stockage : [`vault.md`](vault.md).
 
 ## Ce qui viendra
 
-Le générateur. Les alertes. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.
+Les alertes. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.

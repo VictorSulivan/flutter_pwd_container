@@ -12,12 +12,13 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 6. **Écran maître** — `/unlock` : créer ou déverrouiller le coffre après Google.
 7. **Sync Firestore** — copie de l’enveloppe chiffrée vers `users/{uid}/vault/current`.
 8. **UI liste** — fiches, recherche, édition, copie 30 s.
+9. **Générateur** — longueur / jeux de caractères, copie 30 s, hors Firebase.
 
 ## Suivant
 
-Générateur de mot de passe, puis alertes.
+Alertes de sécurité in-app (doublons, faiblesse, obsolescence).
 
-Ensuite : générateur, alertes, biométrie, IA, login e-mail.
+Ensuite : biométrie, IA, login e-mail.
 
 ## Hors code pour l’instant
 

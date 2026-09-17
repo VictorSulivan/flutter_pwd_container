@@ -99,6 +99,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     children: [
                       const Expanded(child: SafeVaultHeader()),
                       IconButton(
+                        tooltip: 'Générateur',
+                        onPressed: () => context.go('/generator'),
+                        icon: const Icon(Icons.casino_outlined),
+                      ),
+                      IconButton(
                         tooltip: 'Verrouiller le coffre',
                         onPressed: () {
                           ref.read(vaultEntriesProvider.notifier).lock();

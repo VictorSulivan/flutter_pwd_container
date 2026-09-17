@@ -11,5 +11,6 @@ Le cahier des charges produit est dans [`../project.md`](../project.md). Ici on 
 | [riverpod.md](riverpod.md) | Providers : rôle de chacun, ce que Riverpod n’est pas |
 | [vault.md](vault.md) | Coffre AES-256-GCM, PBKDF2, isolation par uid |
 | [firebase-sync.md](firebase-sync.md) | Config console Firestore (règles, document prévu) |
+| [generator.md](generator.md) | Générateur local, hors Firebase |
 | [decisions.md](decisions.md) | Décisions figées (pourquoi X plutôt que Y) |
 | [roadmap.md](roadmap.md) | Fait / pas encore fait, ordre des prochaines étapes |

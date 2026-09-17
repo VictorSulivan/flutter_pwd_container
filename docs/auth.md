@@ -55,6 +55,7 @@ Trois routes :
 | `/login` | `LoginView` | uniquement **sans** session |
 | `/unlock` | `UnlockView` | session **et** coffre verrouillé |
 | `/` | `HomeView` | session **et** coffre déverrouillé |
+| `/generator` | `GeneratorView` | comme `/` |
 | `/entry/new`, `/entry/:id` | `EntryView` | comme `/` |
 
 `redirect` :

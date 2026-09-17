@@ -6,6 +6,7 @@ import '../models/vault_entry.dart';
 import '../providers/vault_providers.dart';
 import '../theme/app_theme.dart';
 import 'widgets/copy_secret.dart';
+import 'widgets/password_generator_panel.dart';
 import 'widgets/safe_vault_chrome.dart';
 
 class EntryView extends ConsumerStatefulWidget {
@@ -228,6 +229,15 @@ class _EntryViewState extends ConsumerState<EntryView> {
                                 });
                               },
                               onSubmitted: (_) => _save(),
+                            ),
+                            const SizedBox(height: 16),
+                            PasswordGeneratorPanel(
+                              onGenerated: (password) {
+                                setState(() {
+                                  _password.text = password;
+                                  _obscure = false;
+                                });
+                              },
                             ),
                             const SizedBox(height: 24),
                             if (_loading)

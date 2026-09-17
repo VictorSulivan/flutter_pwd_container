@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pwd_container/src/models/vault_entry.dart';
 import 'package:flutter_pwd_container/src/providers/vault_providers.dart';
 import 'package:flutter_pwd_container/src/views/entry_view.dart';
+import 'package:flutter_pwd_container/src/views/generator_view.dart';
 import 'package:flutter_pwd_container/src/views/home_view.dart';
 import 'package:flutter_pwd_container/src/views/login_view.dart';
 import 'package:flutter_pwd_container/src/views/unlock_view.dart';
@@ -93,6 +94,16 @@ void main() {
 
     expect(find.text('Nouvelle fiche'), findsOneWidget);
     expect(find.text('Enregistrer'), findsOneWidget);
+  });
+
+  testWidgets('affiche le générateur', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: GeneratorView()));
+
+    expect(find.text('Générateur'), findsOneWidget);
+    await tester.tap(find.text('Générer'));
+    await tester.pump();
+
+    expect(find.text('Copier (30 s)'), findsOneWidget);
   });
 }
 
