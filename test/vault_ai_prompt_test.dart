@@ -44,6 +44,46 @@ void main() {
     expect(await llm.isReady, isTrue);
   });
 
+  test('le prompt fiche suit la feuille de route sans secret', () {
+    final facts = VaultAiFacts.fromHealth(
+      PasswordHealthAnalyzer().analyze(const []),
+    );
+    const entry = EntryAiFacts(
+      entryId: 'x',
+      serviceName: 'GitHub',
+      score: 20,
+      passwordLength: 5,
+      characterClasses: 1,
+      ageDays: 3,
+      weak: true,
+      stale: false,
+      duplicate: false,
+      pwned: false,
+      pwnedAppearances: 0,
+      issueLabels: [],
+    );
+    final user = VaultAiPrompt.entryUser(entry, leaksChecked: false);
+    expect(user, contains('leaksChecked'));
+    expect(user, contains('feuille de route'));
+    expect(user, isNot(contains('GitHub')));
+    expect(user, isNot(contains('password')));
+    expect(facts.toModelPayload(), isNot(contains('GitHub')));
+  });
+
+  test('parseEntryWhy garde un paragraphe, sinon le repli', () {
+    expect(
+      VaultAiPrompt.parseEntryWhy(
+        'Ce mot de passe est trop court. Change-le avec le générateur.',
+        fallback: 'repli',
+      ),
+      contains('trop court'),
+    );
+    expect(
+      VaultAiPrompt.parseEntryWhy('ok', fallback: 'repli du rapport'),
+      'repli du rapport',
+    );
+  });
+
   test('un secret collé n’est pas envoyé au modèle', () async {
     final llm = _RecordingLlm();
     final assistant = VaultAiAssistant(llm);
@@ -55,10 +95,36 @@ void main() {
     expect(answer.body, contains('Je n’analyse pas un texte collé'));
     expect(answer.body, isNot(contains('Vg7#kL92mQp!xR4s')));
   });
+
+  test('le bilan fiche ne passe pas par le modèle', () async {
+    final llm = _RecordingLlm()
+      ..reply =
+          'Ce mot de passe est trop court pour rester en ligne. Change-le avec le générateur.';
+    final assistant = VaultAiAssistant(llm);
+    const entry = EntryAiFacts(
+      entryId: 'x',
+      serviceName: 'GitHub',
+      score: 20,
+      passwordLength: 5,
+      characterClasses: 1,
+      ageDays: 3,
+      weak: true,
+      stale: false,
+      duplicate: false,
+      pwned: false,
+      pwnedAppearances: 0,
+      issueLabels: [],
+    );
+    final report = await assistant.briefEntry(entry);
+    expect(report.signals, hasLength(4));
+    expect(report.steps.first, contains('générateur'));
+    expect(llm.calls, isEmpty);
+  });
 }
 
 class _RecordingLlm implements OnDeviceLlm {
   final calls = <String>[];
+  String reply = 'ne doit pas être appelé';
 
   @override
   Future<bool> get isReady async => true;
@@ -72,6 +138,6 @@ class _RecordingLlm implements OnDeviceLlm {
     required String user,
   }) async {
     calls.add(user);
-    return 'ne doit pas être appelé';
+    return reply;
   }
 }

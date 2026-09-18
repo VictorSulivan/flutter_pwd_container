@@ -89,7 +89,7 @@ Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : 
 
 `llmReadyProvider` / `llmInstallProgressProvider` : modèle installé ou non, barre de téléchargement.
 
-`vaultAiAssistantProvider` / `vaultAiBriefingProvider` / `entryAiBriefingProvider` : briefing et conseil fiche via le LLM, repli Dart. Détail : [`assistant.md`](assistant.md).
+`vaultAiAssistantProvider` / `vaultAiBriefingProvider` / `entryAiAdviceProvider` : briefing coffre en Dart (après HIBP) ; questions guidées en Dart ; bilan fiche = signaux + étapes. Détail : [`assistant.md`](assistant.md).
 
 `securityAlertsProvider` / `securityNotificationPortProvider` : bandeau in-app + notif système après unlock/sauvegarde.
 

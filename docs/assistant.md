@@ -53,13 +53,33 @@ Les prompts ne sont pas loggés.
 
 | Route | Rôle | Moteur |
 | --- | --- | --- |
-| `/assistant` | Installer le modèle, briefing, questions | LLM (repli Dart si échec) |
+| `/assistant` | Installer le modèle, briefing, questions | Briefing Dart ; questions guidées Dart, le reste LLM |
 | `/assistant/plan` | Plan d’action, une fiche à la fois | Dart uniquement |
-| `/assistant/fiche/:id` | Conseil d’une fiche (métadonnées) | LLM (repli Dart) |
+| `/assistant/fiche/:id` | Bilan d’une fiche | Signaux + étapes Dart |
 
 Le score global et les compteurs restent sur [`/security`](../lib/src/views/security_view.dart). La liste détaillée est sur [`/security/passwords`](../lib/src/views/security_passwords_view.dart).
 
 Le plan reste en Dart parce qu’un petit modèle n’émet pas des `entryId` fiables. Priorité : fuites (si déjà connues) → doublons → trop simples → trop anciens.
+
+## Rapport fiche
+
+Le 0.6B n’invente pas la structure : Dart pose tout le rapport.
+
+**Feuille de route** (un seul sujet prioritaire, dans cet ordre) :
+
+1. Fuite (`pwned=1`) → changer tout de suite
+2. Doublon (`duplicate=1`) → un secret unique par fiche
+3. Trop simple (`weak=1`) → au moins 16 caractères, lettres + chiffres + symboles
+4. Trop ancien (`stale=1`, > 90 j) → renouveler
+5. Sinon → rien d’urgent, proposer la 2FA
+
+**Rendu UI** :
+
+1. Pastille Urgent / À surveiller / Tout va bien + verdict
+2. **Ce que j’ai regardé** : 4 lignes (fuites, unicité, difficulté, âge)
+3. **À faire, dans l’ordre** : étapes numérotées, puis boutons fiche / générateur
+
+Le briefing du menu assistant est aussi en Dart : Qwen3 0.6B répétait « vérif réseau / comptes » dès que `leaksChecked` apparaissait dans le prompt. Les puces de questions (fuites, longueur, plan…) restent des réponses Dart. Le LLM ne parle que si la question n’est pas déjà couverte. Si HIBP est encore en cours, on n’écrit pas « pas de réseau ».
 
 ## Architecture
 
@@ -79,16 +99,16 @@ LiteRT-LM (Qwen3)  ou  SecurityAiAdvisor en repli
 | --- | --- |
 | [`on_device_llm.dart`](../lib/src/services/on_device_llm.dart) | Contrat `OnDeviceLlm` + `MemoryOnDeviceLlm` (tests) |
 | [`gemma_on_device_llm.dart`](../lib/src/services/gemma_on_device_llm.dart) | Download, chat one-shot, file d’attente native |
-| [`vault_ai_prompt.dart`](../lib/src/services/vault_ai_prompt.dart) | Prompts FR, parse `titre / --- / corps / --- / action`, strip `<think>` |
+| [`vault_ai_prompt.dart`](../lib/src/services/vault_ai_prompt.dart) | Prompts JSON (aucun secret), feuille de route fiche, parse |
 | [`security_ai_advisor.dart`](../lib/src/services/security_ai_advisor.dart) | Compteurs, plan, refus de secret, briefing de repli |
 
 Bootstrap : [`main.dart`](../lib/main.dart) appelle `FlutterGemma.initialize(inferenceEngines: [LiteRtLmEngine()])` hors web. Un échec n’empêche pas l’app de démarrer.
 
-Providers : `onDeviceLlmProvider`, `llmReadyProvider`, `llmInstallProgressProvider`, `vaultAiAssistantProvider`, `vaultAiBriefingProvider`, `entryAiBriefingProvider`. Détail : [`riverpod.md`](riverpod.md).
+Providers : `onDeviceLlmProvider`, `llmReadyProvider`, `llmInstallProgressProvider`, `vaultAiAssistantProvider`, `vaultAiBriefingProvider`, `entryAiAdviceProvider`. Détail : [`riverpod.md`](riverpod.md).
 
 ## Repli
 
-`VaultAiAssistant` appelle le LLM seulement si `isReady`. Exception native, réponse vide, ou modèle absent → `SecurityAiAdvisor.brief` / `answer` / `briefEntry`. L’UI ne bloque pas le plan d’action sur le download.
+Le briefing du coffre et le bilan fiche sont en Dart. `VaultAiAssistant.answer` n’appelle Qwen3 que pour une question libre (pas les puces). Si la réponse ressemble à un copier-coller « vérif réseau », on reprend le texte Dart.
 
 ## Android
 

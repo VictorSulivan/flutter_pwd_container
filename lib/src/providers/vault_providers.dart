@@ -101,6 +101,7 @@ final vaultAiFactsProvider = Provider<VaultAiFacts>((ref) {
   return VaultAiFacts.fromHealth(
     health,
     leaksChecked: _leaksWereChecked(health, hits),
+    leaksPending: health.entries.isNotEmpty && hits.isLoading,
   );
 });
 
@@ -129,24 +130,24 @@ class LlmInstallProgressNotifier extends Notifier<int?> {
 }
 
 final vaultAiBriefingProvider = FutureProvider<AiBriefing>((ref) async {
-  final facts = ref.watch(vaultAiFactsProvider);
-  return ref.watch(vaultAiAssistantProvider).brief(facts);
+  await ref.watch(pwnedHitsProvider.future);
+  return SecurityAiAdvisor().brief(ref.watch(vaultAiFactsProvider));
 });
 
-final entryAiBriefingProvider =
-    FutureProvider.family<AiBriefing, String>((ref, entryId) async {
+final entryAiAdviceProvider =
+    Provider.family<EntryAdviceReport, String>((ref, entryId) {
       final facts = ref.watch(vaultAiFactsProvider);
       final entry = facts.entries
           .where((item) => item.entryId == entryId)
           .firstOrNull;
       if (entry == null) {
-        return const AiBriefing(
-          headline: 'Fiche introuvable',
-          body: 'Cette fiche n’est plus dans le coffre ouvert.',
-          nextStep: 'Reviens à la liste.',
-        );
+        return EntryAdviceReport.missing;
       }
-      return ref.watch(vaultAiAssistantProvider).briefEntry(entry);
+      return SecurityAiAdvisor().reportEntry(
+        entry,
+        leaksChecked: facts.leaksChecked,
+        leaksPending: facts.leaksPending,
+      );
     });
 
 bool _leaksWereChecked(

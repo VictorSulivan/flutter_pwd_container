@@ -48,7 +48,7 @@ sequenceDiagram
 | [`lib/src/views/security_passwords_view.dart`](../lib/src/views/security_passwords_view.dart) | Analyse d’une fiche à la fois |
 | [`lib/src/views/assistant_view.dart`](../lib/src/views/assistant_view.dart) | Download du modèle, briefing LLM, questions |
 | [`lib/src/views/assistant_plan_view.dart`](../lib/src/views/assistant_plan_view.dart) | Plan d’action priorisé |
-| [`lib/src/views/assistant_entry_view.dart`](../lib/src/views/assistant_entry_view.dart) | Conseil d’une fiche (sans le secret) |
+| [`lib/src/views/assistant_entry_view.dart`](../lib/src/views/assistant_entry_view.dart) | Bilan d’une fiche (signaux, en clair, étapes) |
 | [`lib/src/services/password_generator.dart`](../lib/src/services/password_generator.dart) | `Random.secure()`, jeux de caractères |
 | [`lib/src/services/password_health.dart`](../lib/src/services/password_health.dart) | Analyse locale : force, SHA-256, obsolescence, fuites |
 | [`lib/src/services/pwned_passwords.dart`](../lib/src/services/pwned_passwords.dart) | HIBP k-anonymity (préfixe SHA-1 seulement) |

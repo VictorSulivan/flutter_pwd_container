@@ -75,13 +75,51 @@ void main() {
       password: 'test2',
     );
     final report = PasswordHealthAnalyzer().inspectEntry(entry);
-    final briefing = SecurityAiAdvisor().briefEntry(
+    final advice = SecurityAiAdvisor().reportEntry(
       EntryAiFacts.fromReport(report),
     );
-    expect(briefing.body, contains('5 caractères'));
-    expect(briefing.body, isNot(contains('test2')));
-    expect(briefing.body, isNot(contains('root')));
-    expect(briefing.headline, contains('prévisible'));
+    expect(advice.verdict, contains('deviner'));
+    expect(advice.why, contains('5 caractères'));
+    expect(advice.why, isNot(contains('test2')));
+    expect(advice.why, isNot(contains('root')));
+    expect(advice.signals, hasLength(4));
+    expect(advice.steps, isNotEmpty);
+    expect(
+      advice.signals.map((signal) => signal.title).toList(),
+      ['Fuites publiques', 'Unicité', 'Difficulté à deviner', 'Dernier changement'],
+    );
+  });
+
+  test('hors ligne, le rapport fiche ne prétend pas qu’il n’y a aucune fuite', () {
+    final entry = VaultEntry.create(
+      serviceName: 'Demo',
+      username: 'orion',
+      password: 'test2',
+    );
+    final report = PasswordHealthAnalyzer().inspectEntry(entry);
+    final advice = SecurityAiAdvisor().reportEntry(
+      EntryAiFacts.fromReport(report),
+      leaksChecked: false,
+    );
+    expect(advice.signals.first.detail, contains('pas de réseau'));
+    expect(advice.signals.first.detail, isNot(contains('Pas trouvé')));
+  });
+
+  test('pendant le contrôle HIBP, le briefing ne parle pas d’absence de réseau', () {
+    final entry = VaultEntry.create(
+      serviceName: 'Demo',
+      username: 'orion',
+      password: 'test2',
+    );
+    final health = PasswordHealthAnalyzer().analyze([entry], now: now);
+    final facts = VaultAiFacts.fromHealth(
+      health,
+      leaksChecked: false,
+      leaksPending: true,
+    );
+    final briefing = SecurityAiAdvisor().brief(facts);
+    expect(briefing.body, isNot(contains('pas de réseau')));
+    expect(briefing.body, contains('trop faible'));
   });
 
   test('hors ligne, l’assistant ne prétend pas qu’il n’y a aucune fuite', () {

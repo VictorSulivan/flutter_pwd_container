@@ -79,12 +79,14 @@ class VaultAiFacts {
     required this.averageLength,
     required this.oldestDays,
     required this.leaksChecked,
+    this.leaksPending = false,
     required this.entries,
   });
 
   factory VaultAiFacts.fromHealth(
     VaultHealthReport health, {
     bool leaksChecked = true,
+    bool leaksPending = false,
   }) {
     final entries = [
       for (final report in health.entries) EntryAiFacts.fromReport(report),
@@ -110,6 +112,7 @@ class VaultAiFacts {
           : (lengths.reduce((a, b) => a + b) / lengths.length).round(),
       oldestDays: ages.isEmpty ? 0 : ages.reduce((a, b) => a > b ? a : b),
       leaksChecked: leaksChecked,
+      leaksPending: leaksPending,
       entries: entries,
     );
   }
@@ -126,6 +129,7 @@ class VaultAiFacts {
   final int averageLength;
   final int oldestDays;
   final bool leaksChecked;
+  final bool leaksPending;
   final List<EntryAiFacts> entries;
 
   int get flaggedCount => entries.where((entry) => entry.hasIssue).length;
@@ -181,6 +185,55 @@ class AiAnswer {
   final String body;
 }
 
+enum EntryAdviceTone { ok, watch, urgent }
+
+class EntryAdviceSignal {
+  const EntryAdviceSignal({
+    required this.title,
+    required this.detail,
+    required this.tone,
+  });
+
+  final String title;
+  final String detail;
+  final EntryAdviceTone tone;
+}
+
+/// Rapport fiche : squelette Dart (signaux + étapes), paragraphe « en clair » ensuite.
+class EntryAdviceReport {
+  const EntryAdviceReport({
+    required this.tone,
+    required this.verdict,
+    required this.why,
+    required this.signals,
+    required this.steps,
+  });
+
+  static const missing = EntryAdviceReport(
+    tone: EntryAdviceTone.watch,
+    verdict: 'Fiche introuvable',
+    why: 'Cette fiche n’est plus dans le coffre ouvert.',
+    signals: [],
+    steps: ['Reviens à la liste des mots de passe.'],
+  );
+
+  final EntryAdviceTone tone;
+  final String verdict;
+  final String why;
+  final List<EntryAdviceSignal> signals;
+  final List<String> steps;
+
+  EntryAdviceReport withWhy(String why) {
+    return EntryAdviceReport(
+      tone: tone,
+      verdict: verdict,
+      why: why,
+      signals: signals,
+      steps: steps,
+    );
+  }
+}
+
 /// Compteurs et plan d’action **on-device**.
 /// Le briefing en langage naturel passe par le LLM local (`VaultAiAssistant`).
 /// Les mots de passe ne sont jamais lus ici.
@@ -222,10 +275,10 @@ class SecurityAiAdvisor {
           'apparaissent dans des fuites publiques',
         ),
       );
-    } else if (!facts.leaksChecked) {
+    } else if (!facts.leaksPending && !facts.leaksChecked) {
       parts.add(
-        'Les fuites publiques n’ont pas été vérifiées : pas de réseau. '
-        'Je continue avec la longueur, les doublons et l’âge.',
+        'Les fuites publiques n’ont pas été vérifiées (pas de réseau). '
+        'Le reste du briefing (longueur, doublons, âge) reste valable.',
       );
     }
     if (facts.weakCount > 0) {
@@ -347,6 +400,14 @@ class SecurityAiAdvisor {
 
     final q = _normalize(trimmed);
     if (_matches(q, const ['fuite', 'pwned', 'leak', 'compromis'])) {
+      if (facts.leaksPending) {
+        return AiAnswer(
+          question: trimmed,
+          body:
+              'La recherche de fuites est encore en cours. '
+              'Reviens dans un instant, ou regarde déjà la longueur et les doublons.',
+        );
+      }
       if (!facts.leaksChecked) {
         return AiAnswer(
           question: trimmed,
@@ -426,38 +487,52 @@ class SecurityAiAdvisor {
     );
   }
 
-  AiBriefing briefEntry(EntryAiFacts facts) {
-    final parts = <String>[
-      'Score ${facts.score}/100.',
-      '${facts.passwordLength} ${_plural(facts.passwordLength, 'caractère', 'caractères')}, '
-          '${facts.characterClasses} type${facts.characterClasses > 1 ? 's' : ''} de caractères, '
-          'modifié il y a ${facts.ageDays} jour${facts.ageDays > 1 ? 's' : ''}.',
-    ];
-    if (facts.pwned) {
-      parts.add(
-        facts.pwnedAppearances <= 1
-            ? 'Signalé dans une fuite publique.'
-            : 'Signalé dans ${facts.pwnedAppearances} fuites publiques.',
-      );
-    }
-    if (facts.duplicate) {
-      parts.add('La même empreinte existe déjà dans le coffre.');
-    }
-    if (facts.weak) {
-      parts.add('La complexité est insuffisante (trop court, trop simple, ou trop prévisible).');
-    }
-    if (facts.stale) {
-      parts.add('Le secret a dépassé 90 jours.');
-    }
-    if (!facts.hasIssue) {
-      parts.add('Aucun signal faible, dupliqué, trop ancien ou fuité.');
-    }
-    parts.add('Je n’ai pas lu le mot de passe de cette fiche.');
-
+  AiBriefing briefEntry(
+    EntryAiFacts facts, {
+    bool leaksChecked = true,
+    bool leaksPending = false,
+  }) {
+    final report = reportEntry(
+      facts,
+      leaksChecked: leaksChecked,
+      leaksPending: leaksPending,
+    );
     return AiBriefing(
-      headline: _entryHeadline(facts),
-      body: parts.join(' '),
-      nextStep: _entryNextStep(facts),
+      headline: report.verdict,
+      body: [
+        for (final signal in report.signals) '${signal.title} : ${signal.detail}',
+        report.why,
+      ].join(' '),
+      nextStep: report.steps.join(' '),
+    );
+  }
+
+  /// Feuille de route fixe : fuite → doublon → trop simple → trop ancien.
+  EntryAdviceReport reportEntry(
+    EntryAiFacts facts, {
+    bool leaksChecked = true,
+    bool leaksPending = false,
+  }) {
+    final signals = [
+      _leakSignal(facts, leaksChecked, leaksPending),
+      _uniqueSignal(facts),
+      _strengthSignal(facts),
+      _ageSignal(facts),
+    ];
+    return EntryAdviceReport(
+      tone: _worstTone([for (final signal in signals) signal.tone]),
+      verdict: _entryVerdict(
+        facts,
+        leaksChecked: leaksChecked,
+        leaksPending: leaksPending,
+      ),
+      why: _entryWhy(
+        facts,
+        leaksChecked: leaksChecked,
+        leaksPending: leaksPending,
+      ),
+      signals: signals,
+      steps: _entrySteps(facts),
     );
   }
 
@@ -499,30 +574,196 @@ class SecurityAiAdvisor {
     return 'Garde ce rythme : mots de passe uniques, longs, et 2FA dès qu’un service l’offre.';
   }
 
-  String _entryHeadline(EntryAiFacts facts) {
+  String _entryVerdict(
+    EntryAiFacts facts, {
+    required bool leaksChecked,
+    bool leaksPending = false,
+  }) {
     if (facts.pwned) {
-      return 'Ce secret doit être remplacé tout de suite';
+      return 'À changer tout de suite';
     }
     if (facts.duplicate) {
-      return 'Ce secret est encore partagé';
+      return 'Ce mot de passe est partagé';
     }
     if (facts.weak) {
-      return 'Ce mot de passe est trop prévisible';
+      return 'Trop facile à deviner';
     }
     if (facts.stale) {
-      return 'Ce mot de passe a besoin d’un renouvellement';
+      return 'Il est temps de le renouveler';
     }
-    return 'Cette fiche est en bon état';
+    if (!leaksChecked && !leaksPending) {
+      return 'Plutôt solide, fuites non vérifiées';
+    }
+    return 'Rien d’urgent sur cette fiche';
   }
 
-  String _entryNextStep(EntryAiFacts facts) {
-    if (facts.pwned || facts.weak || facts.duplicate) {
-      return 'Ouvre le générateur, crée un secret d’au moins 16 caractères, puis enregistre-le ici seulement.';
+  String _entryWhy(
+    EntryAiFacts facts, {
+    required bool leaksChecked,
+    bool leaksPending = false,
+  }) {
+    if (facts.pwned) {
+      return 'Ce mot de passe apparaît déjà dans des fuites publiques. '
+          'Change-le maintenant, avant de t’occuper du reste.';
+    }
+    if (facts.duplicate) {
+      return 'Le même secret ouvre encore plusieurs comptes. '
+          'Si l’un fuit, les autres suivent.';
+    }
+    if (facts.weak) {
+      return 'Avec ${facts.passwordLength} caractères et un mélange trop simple, '
+          'ce mot de passe se devine trop facilement. Vise 16 caractères, '
+          'avec lettres, chiffres et symboles.';
     }
     if (facts.stale) {
-      return 'Génère un nouveau mot de passe et mets à jour le service distant, puis la fiche.';
+      return 'Il n’a pas été changé depuis ${facts.ageDays} jours. '
+          'Un renouvellement limite les dégâts si un ancien dump ressurgit.';
     }
-    return 'Rien d’urgent. Tu peux quand même activer une 2FA si le service la propose.';
+    if (leaksPending) {
+      return 'Longueur, unicité et âge sont bons. '
+          'La recherche de fuites est encore en cours.';
+    }
+    if (!leaksChecked) {
+      return 'Longueur, unicité et âge sont bons. '
+          'Les fuites publiques n’ont pas pu être vérifiées (pas de réseau).';
+    }
+    return 'Cette fiche est en bon état. '
+        'Tu peux quand même activer la double authentification si le service la propose.';
+  }
+
+  EntryAdviceSignal _leakSignal(
+    EntryAiFacts facts,
+    bool leaksChecked,
+    bool leaksPending,
+  ) {
+    if (leaksPending) {
+      return const EntryAdviceSignal(
+        title: 'Fuites publiques',
+        detail: 'Vérification en cours.',
+        tone: EntryAdviceTone.ok,
+      );
+    }
+    if (!leaksChecked) {
+      return const EntryAdviceSignal(
+        title: 'Fuites publiques',
+        detail:
+            'Pas encore vérifié : pas de réseau. Ce n’est pas un feu vert.',
+        tone: EntryAdviceTone.watch,
+      );
+    }
+    if (facts.pwned) {
+      final extra = facts.pwnedAppearances > 1
+          ? ' Vu ${facts.pwnedAppearances} fois.'
+          : '';
+      return EntryAdviceSignal(
+        title: 'Fuites publiques',
+        detail: 'Oui, ce mot de passe circule déjà.$extra Change-le tout de suite.',
+        tone: EntryAdviceTone.urgent,
+      );
+    }
+    return const EntryAdviceSignal(
+      title: 'Fuites publiques',
+      detail: 'Pas trouvé dans les fuites connues pour l’instant.',
+      tone: EntryAdviceTone.ok,
+    );
+  }
+
+  EntryAdviceSignal _uniqueSignal(EntryAiFacts facts) {
+    if (facts.duplicate) {
+      return const EntryAdviceSignal(
+        title: 'Unicité',
+        detail:
+            'Le même mot de passe est encore utilisé sur une autre fiche du coffre.',
+        tone: EntryAdviceTone.urgent,
+      );
+    }
+    return const EntryAdviceSignal(
+      title: 'Unicité',
+      detail: 'Ce secret est distinct des autres fiches du coffre.',
+      tone: EntryAdviceTone.ok,
+    );
+  }
+
+  EntryAdviceSignal _strengthSignal(EntryAiFacts facts) {
+    if (!facts.weak) {
+      return EntryAdviceSignal(
+        title: 'Difficulté à deviner',
+        detail:
+            '${facts.passwordLength} caractères, mélange suffisant. C’est assez solide.',
+        tone: EntryAdviceTone.ok,
+      );
+    }
+    final bits = <String>[
+      '${facts.passwordLength} ${_plural(facts.passwordLength, 'caractère', 'caractères')}',
+    ];
+    if (facts.passwordLength < 16) {
+      bits.add('vise 16 ou plus');
+    }
+    if (facts.characterClasses < 3) {
+      bits.add('ajoute lettres, chiffres et symboles');
+    } else {
+      bits.add('évite les mots trop courants');
+    }
+    return EntryAdviceSignal(
+      title: 'Difficulté à deviner',
+      detail: '${bits.join(' · ')}. Trop facile à retrouver.',
+      tone: facts.passwordLength < 8
+          ? EntryAdviceTone.urgent
+          : EntryAdviceTone.watch,
+    );
+  }
+
+  EntryAdviceSignal _ageSignal(EntryAiFacts facts) {
+    if (facts.stale) {
+      return EntryAdviceSignal(
+        title: 'Dernier changement',
+        detail:
+            'Pas modifié depuis ${facts.ageDays} jours (seuil : 90 jours).',
+        tone: EntryAdviceTone.watch,
+      );
+    }
+    if (facts.ageDays <= 1) {
+      return const EntryAdviceSignal(
+        title: 'Dernier changement',
+        detail: 'Mis à jour récemment.',
+        tone: EntryAdviceTone.ok,
+      );
+    }
+    return EntryAdviceSignal(
+      title: 'Dernier changement',
+      detail: 'Changé il y a ${facts.ageDays} jours.',
+      tone: EntryAdviceTone.ok,
+    );
+  }
+
+  List<String> _entrySteps(EntryAiFacts facts) {
+    if (facts.pwned || facts.duplicate || facts.weak) {
+      return const [
+        'Ouvre le générateur et crée un mot de passe d’au moins 16 caractères.',
+        'Change-le d’abord sur le site, ensuite seulement dans cette fiche.',
+        'Active la double authentification si le service le propose.',
+      ];
+    }
+    if (facts.stale) {
+      return const [
+        'Génère un nouveau mot de passe.',
+        'Mets-le à jour sur le site, puis enregistre-le ici.',
+      ];
+    }
+    return const [
+      'Rien à changer pour l’instant.',
+      'Active la double authentification si le service la propose.',
+    ];
+  }
+
+  EntryAdviceTone _worstTone(List<EntryAdviceTone> tones) {
+    if (tones.contains(EntryAdviceTone.urgent)) {
+      return EntryAdviceTone.urgent;
+    }
+    if (tones.contains(EntryAdviceTone.watch)) {
+      return EntryAdviceTone.watch;
+    }
+    return EntryAdviceTone.ok;
   }
 
   String _count(int value, String singular, String plural) {
@@ -538,6 +779,30 @@ class SecurityAiAdvisor {
 
   String _normalize(String value) {
     return value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  bool isGuidedQuestion(String question) {
+    final q = _normalize(question);
+    return _matches(q, const [
+          'fuite',
+          'pwned',
+          'leak',
+          'compromis',
+        ]) ||
+        _matches(q, const ['doubl', 'reutil', 'réutil', 'meme secret', 'même secret']) ||
+        _matches(q, const ['long', 'court', 'caractere', 'caractère', 'longueur']) ||
+        _matches(q, const ['vieux', 'ancien', 'age', 'âge', 'renouvel', '90']) ||
+        _matches(q, const ['commenc', 'urgent', 'priorit', 'quoi faire', 'plan']) ||
+        _matches(q, const [
+          'vois',
+          'donnee',
+          'donnée',
+          'secret',
+          'envoie',
+          'cloud',
+          'ia',
+          'exactement',
+        ]);
   }
 
   bool _matches(String question, List<String> needles) {

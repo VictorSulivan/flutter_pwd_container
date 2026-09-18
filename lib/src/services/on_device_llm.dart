@@ -53,8 +53,12 @@ class MemoryOnDeviceLlm implements OnDeviceLlm {
       return advisor.answer(question, _vaultFacts(payload)).body;
     }
     if (payload.containsKey('length') && !payload.containsKey('entryCount')) {
-      final briefing = advisor.briefEntry(_entryFacts(payload));
-      return _blocks(briefing);
+      return advisor
+          .reportEntry(
+            _entryFacts(payload),
+            leaksChecked: (payload['leaksChecked'] ?? 1) == 1,
+          )
+          .why;
     }
     return _blocks(advisor.brief(_vaultFacts(payload)));
   }

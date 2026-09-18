@@ -20,7 +20,7 @@ class AssistantEntryView extends ConsumerWidget {
     final entry = facts.entries
         .where((item) => item.entryId == entryId)
         .firstOrNull;
-    final briefing = ref.watch(entryAiBriefingProvider(entryId));
+    final advice = ref.watch(entryAiAdviceProvider(entryId));
 
     return Scaffold(
       body: Stack(
@@ -58,7 +58,7 @@ class AssistantEntryView extends ConsumerWidget {
                           ),
                         )
                       else
-                        ..._entryBody(context, entry, briefing),
+                        ..._entryBody(context, entry, advice),
                     ],
                   ),
                 ),
@@ -73,7 +73,7 @@ class AssistantEntryView extends ConsumerWidget {
   List<Widget> _entryBody(
     BuildContext context,
     EntryAiFacts entry,
-    AsyncValue<AiBriefing> briefing,
+    EntryAdviceReport advice,
   ) {
     return [
       Text(
@@ -86,8 +86,7 @@ class AssistantEntryView extends ConsumerWidget {
       ),
       const SizedBox(height: 4),
       const Text(
-        'Conseil du modèle local sur la longueur, les types de caractères, l’âge et les signaux. '
-        'Le mot de passe n’est pas lu.',
+        'Bilan en français simple. Le mot de passe n’est pas lu.',
         style: TextStyle(
           color: AppColors.muted,
           fontSize: 14,
@@ -95,35 +94,7 @@ class AssistantEntryView extends ConsumerWidget {
         ),
       ),
       const SizedBox(height: 18),
-      ...briefing.when(
-        loading: () => const [
-          SafeVaultCard(
-            borderRadius: 22,
-            padding: EdgeInsets.fromLTRB(20, 28, 20, 28),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    'Le modèle local rédige le conseil…',
-                    style: TextStyle(color: AppColors.muted, height: 1.35),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        error: (_, _) => _adviceCards(
-          entry,
-          SecurityAiAdvisor().briefEntry(entry),
-        ),
-        data: (value) => _adviceCards(entry, value),
-      ),
+      ..._reportCards(entry, advice),
       const SizedBox(height: 20),
       SafeVaultPrimaryButton(
         onPressed: () => context.push('/entry/${entry.entryId}'),
@@ -145,7 +116,7 @@ class AssistantEntryView extends ConsumerWidget {
   }
 }
 
-List<Widget> _adviceCards(EntryAiFacts entry, AiBriefing briefing) {
+List<Widget> _reportCards(EntryAiFacts entry, EntryAdviceReport report) {
   return [
     SafeVaultCard(
       borderRadius: 22,
@@ -159,22 +130,14 @@ List<Widget> _adviceCards(EntryAiFacts entry, AiBriefing briefing) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _ToneChip(tone: report.tone),
+                const SizedBox(height: 8),
                 Text(
-                  briefing.headline,
+                  report.verdict,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     height: 1.25,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${entry.passwordLength} caractères · '
-                  '${entry.characterClasses} types · '
-                  '${entry.ageDays} j',
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 13,
                   ),
                 ),
               ],
@@ -186,24 +149,161 @@ List<Widget> _adviceCards(EntryAiFacts entry, AiBriefing briefing) {
     const SizedBox(height: 12),
     SafeVaultCard(
       borderRadius: 18,
-      padding: const EdgeInsets.all(16),
-      child: Text(
-        briefing.body,
-        style: const TextStyle(fontSize: 14, height: 1.4),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Ce que j’ai regardé',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          const SizedBox(height: 4),
+          for (final signal in report.signals) _SignalRow(signal: signal),
+        ],
       ),
     ),
     const SizedBox(height: 12),
     SafeVaultCard(
       borderRadius: 18,
-      padding: const EdgeInsets.all(16),
-      child: Text(
-        briefing.nextStep,
-        style: const TextStyle(
-          color: AppColors.cyan,
-          fontWeight: FontWeight.w600,
-          height: 1.35,
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'À faire, dans l’ordre',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          const SizedBox(height: 10),
+          for (var i = 0; i < report.steps.length; i++)
+            _StepRow(index: i + 1, text: report.steps[i]),
+        ],
       ),
     ),
   ];
+}
+
+class _ToneChip extends StatelessWidget {
+  const _ToneChip({required this.tone});
+
+  final EntryAdviceTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (tone) {
+      EntryAdviceTone.urgent => ('Urgent', AppColors.danger),
+      EntryAdviceTone.watch => ('À surveiller', AppColors.warning),
+      EntryAdviceTone.ok => ('Tout va bien', AppColors.success),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _SignalRow extends StatelessWidget {
+  const _SignalRow({required this.signal});
+
+  final EntryAdviceSignal signal;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = switch (signal.tone) {
+      EntryAdviceTone.urgent => (Icons.error_outline, AppColors.danger),
+      EntryAdviceTone.watch => (Icons.schedule, AppColors.warning),
+      EntryAdviceTone.ok => (Icons.check_circle_outline, AppColors.success),
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  signal.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  signal.detail,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepRow extends StatelessWidget {
+  const _StepRow({required this.index, required this.text});
+
+  final int index;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.iconWell,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$index',
+              style: const TextStyle(
+                color: AppColors.cyan,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: AppColors.cyan,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
