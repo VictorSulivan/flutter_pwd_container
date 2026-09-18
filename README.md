@@ -1,24 +1,25 @@
-# flutter_pwd_container
+# SafeVault (`flutter_pwd_container`)
 
-A new Flutter project.
+Coffre de mots de passe Flutter : session Firebase (Google), navigation GoRouter, état Riverpod. Les secrets seront chiffrés **en local** (pas encore implémenté).
 
-## Getting Started
+## Documentation
 
-This project is a starting point for a Flutter application.
+- Cahier des charges : [`project.md`](project.md)
+- Décisions et architecture : [`docs/README.md`](docs/README.md)
+- Publication APK (Uptodown) : [`docs/publish.md`](docs/publish.md)
 
-A few resources to get you started if this is your first Flutter project:
+## Lancer l’app
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# flutter_pwd_container
+Android : ajouter le **SHA-1** debug dans la console Firebase (`flutter-pwd-container`) et activer le fournisseur **Google**. Détails dans [`docs/auth.md`](docs/auth.md).
 
-https://firebase.google.com/docs/auth/flutter/start?hl=fr
+## Stack actuelle
 
-https://pub.dev/packages/firebase_ai
-
-https://firebase.google.com/docs/ai-logic/get-started?hl=fr&api=dev
+- Firebase Auth + Google Sign-In
+- GoRouter (garde `/login` ↔ `/`)
+- Riverpod (session + coffre)
+- Coffre local AES-256-GCM (données, pas encore d’UI)

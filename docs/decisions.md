@@ -1,0 +1,121 @@
+# Décisions
+
+Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
+
+## D1 — Riverpod manuel, pas de code generation
+
+**Décision :** `flutter_riverpod` avec `Provider` / `StreamProvider` écrits à la main.
+
+**Pourquoi :** une étape = un commit lisible, sans `build_runner` ni fichiers `*.g.dart`. Suffisant tant que le graphe reste petit (auth, puis coffre).
+
+**Revoir si :** beaucoup de providers family, duplication, ou envie d’`@riverpod`.
+
+## D2 — Riverpod n’est pas le stockage du coffre
+
+**Décision :** Riverpod orchestre l’état ; le coffre est un repository + AES-256-GCM + PBKDF2.
+
+**Pourquoi :** un `StateProvider<List<Entry>>` garderait les secrets en RAM sans politique de chiffrement, de purge, ni de cloisonnement par `uid` Firebase. L’auth et le coffre ont des durées de vie différentes (session cloud vs secrets locaux).
+
+## D3 — Auth Google d’abord, pas d’e-mail / mot de passe
+
+**Décision :** un seul bouton « Continuer avec Google ». Pas de champs e-mail, pas d’avatar sur l’écran login.
+
+**Pourquoi :** le template UI prévoyait e-mail + mot de passe maître + photo de profil. Sans session, la photo n’a pas de source. L’e-mail Firebase est prévu dans `project.md` mais ce n’est pas le déverrouillage du coffre (le mot de passe maître local viendra avec le chiffrement).
+
+## D4 — Redirection GoRouter plutôt que `context.go` après login
+
+**Décision :** le login ne navigue pas lui-même ; il appelle le repository. GoRouter réagit à `authStateChanges`.
+
+**Pourquoi :** un seul endroit décide qui a le droit d’être où (deep link, hot restart, logout). Évite les courses « go home » vs redirect login.
+
+## D5 — `AuthRepository` injectable, plus de statique
+
+**Décision :** constructeur avec `FirebaseAuth` / `GoogleSignIn` optionnels.
+
+**Pourquoi :** tests et plus tard override Riverpod (`authRepositoryProvider.overrideWithValue(...)`). Les statiques auraient bloqué le coffre (même anti-pattern).
+
+## D6 — `routerProvider` à côté des routes, pas dans `auth_providers.dart`
+
+**Décision :** `auth_providers.dart` = session uniquement ; `app_router.dart` = routes + `routerProvider`.
+
+**Pourquoi :** `auth_providers` → `app_router` → `auth_providers` formerait un cycle d’imports. Séparer « qui est connecté » et « quelles pages » reste valable quand on ajoutera `/generator`, `/security`, etc.
+
+## D7 — Options Firebase en Dart + plugin Google Services
+
+**Décision :** `DefaultFirebaseOptions` **et** `google-services.json` / plugin Gradle.
+
+**Pourquoi :** le Dart couvre toutes les plateformes (surtout le web). Le JSON Android alimente aussi `default_web_client_id` pour Google Sign-In. Les deux sont complémentaires, pas redondants au hasard.
+
+## D10 — Mot de passe maître + PBKDF2, pas la clé AES brute dans Firebase
+
+**Décision :** PBKDF2-HMAC-SHA256 (210k itérations) dérive une KEK. Elle enveloppe la DEK AES. Firestore (plus tard) ne recevra que sel + `wrappedDek` + ciphertext.
+
+**Pourquoi :** le Keystore seul ne suit pas sur un autre téléphone. Google Sign-In ne doit pas suffire à lire le coffre. PBKDF2 est l’algo demandé ; le sel est public, le maître ne sort pas de l’appareil.
+
+**Revoir si :** déverrouillage trop lent sur low-end (monter/baisser les itérations, ou Argon2id).
+
+## D8 — Développement par petites étapes
+
+Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître → sync → UI liste → générateur → santé du coffre (fait) → biométrie.
+
+**Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang ».
+
+## D9 — AES-256-GCM, blob local, clé enveloppée (plus de DEK brute au Keystore)
+
+**Décision :** les fiches sont chiffrées AES-256-GCM. La DEK est enveloppée par PBKDF2 (D10) et stockée dans `vault_<uid>.enc` avec le ciphertext. Plus de clé AES en clair dans Flutter Secure Storage.
+
+**Pourquoi :** la même enveloppe pourra être copiée vers Firestore. Une DEK seulement dans le Keystore ne se synchronise pas.
+
+**Revoir si :** web (pas de `dart:io` fichier) : autre blob store.
+
+## D11 — Mot de passe maître après Google, pas dans le login
+
+**Décision :** `/login` = Google seulement. `/unlock` = créer ou ouvrir le coffre. `HomeView` n’est accessible qu’avec un coffre déverrouillé.
+
+**Pourquoi :** l’identité Firebase et le secret du coffre n’ont pas le même rôle. Un `context.go('/')` après `create`/`unlock` est nécessaire parce que `refreshListenable` n’écoute que l’auth.
+
+**Revoir si :** on ajoute un `Listenable` coffre pour que GoRouter redirige tout seul après déverrouillage.
+
+## D12 — Firestore ne voit que l’enveloppe, last-write-wins
+
+**Décision :** Auth = utilisateurs. Firestore `users/{uid}/enveloppe/actuelle` = 1 coffre (clé enveloppée). `users/{uid}/fiches/{id}` = X mots de passe de sites, chiffrés. Pas le maître. Conflit = `updatedAt` du coffre.
+
+**Pourquoi :** Google Sign-In ne doit pas suffire à lire le coffre. Un merge champ par champ des fiches exigerait de déchiffrer dans le cloud.
+
+**Revoir si :** deux appareils écrivent hors-ligne puis se reconnectent (un des deux perd ses dernières fiches). Un CRDT / historique de versions serait plus lourd.
+
+## D13 — Santé du coffre en local, pas dans le cloud
+
+**Décision :** complexité, doublons (SHA-256) et âge sont calculés en RAM après `unlock`. Firestore ne reçoit pas d’empreinte ni de score.
+
+**Pourquoi :** une copie cloud des hashs aiderait un attaquant qui a déjà l’enveloppe. L’UI « conseil » est un texte local ; l’assistant IA ne voit que des métadonnées (longueur, doublon oui/non, âge, fuites).
+
+## D14 — Alertes locales, pas de push cloud
+
+**Décision :** bandeau in-app + notification dans le tiroir Android (plugin local + permission FCM). Jeton FCM stocké sous `users/{uid}/fcmTokens`. Pas de Cloud Function pour l’instant.
+
+**Pourquoi :** une notif distante calculée dans le cloud exigerait d’y envoyer des métadonnées de santé. L’analyse reste sur l’appareil ; le téléphone affiche ensuite une vraie notification système. Le jeton FCM permet un push console / serveur plus tard, toujours sans secret.
+
+## D15 — HIBP Pwned Passwords en k-anonymity, pas le secret
+
+**Décision :** la recherche de fuites tourne **sur le téléphone**. SHA-1 local, requête `range/{5 caractères}`, comparaison du suffixe en local. Pas de clé API. Pas d’envoi du mot de passe, du hash complet, de l’e-mail ni du nom de service.
+
+**Pourquoi :** l’API Pwned Passwords est gratuite et conçue pour ça. L’API e-mail HIBP (payante) n’est pas utilisée.
+
+**Revoir si :** usage hors-ligne strict (télécharger le corpus complet).
+
+## D16 — Assistant IA Gemini (Firebase), métadonnées seulement
+
+**Décision :** briefing et Q&A libres via **Gemini 3.6 Flash** (`firebase_ai`, `FirebaseAI.googleAI()`). Le modèle ne reçoit que `toModelPayload()`. Le **plan d’action** et le **bilan fiche** restent en Dart (IDs de fiches). Pages dédiées (`/assistant`, `/assistant/plan`, `/assistant/fiche/:id`). Hors ligne / quota / timeout : texte Dart. Have I Been Pwned reste optionnel : l’assistant ne prétend pas « aucune fuite » si `leaksChecked=0`. Un secret collé n’est pas envoyé au modèle. `MemoryVaultLlm` remplace Gemini dans `flutter test`. Pas de clé API dans le code.
+
+**Pourquoi :** un LLM on-device (Qwen3 / LiteRT, ~330 Mo) a été refusé comme trop lourd pour le projet. Gemini Developer API est gratuit dans le quota, déjà branché au projet Firebase. Les secrets restent hors prompt.
+
+**Revoir si :** quota Gemini insuffisant, ou App Check obligatoire en prod. Détail : [`assistant.md`](assistant.md).
+
+## D17 — APK signé, store alternatif Uptodown
+
+**Décision :** le livrable store est un **APK** (`flutter build apk`), pas un AAB Play Store. Le store visé est **Uptodown** (dépôt manuel de l’APK). Un workflow sur **`main`** fabrique l’APK signé et le joint à une GitHub Release : ce n’est que le fichier à uploader, pas la vitrine. F-Droid est exclu (Firebase propriétaire). Keystore hors git. `allowBackup=false`. `applicationId` inchangé.
+
+**Pourquoi :** Uptodown accepte un APK avec Google Sign-In / Firebase, sans compte Play. GitHub Actions ne remplace pas un store : il produit le binaire.
+
+**Revoir si :** Aptoide, Amazon Appstore, ou un vrai `applicationId`. Détail : [`publish.md`](publish.md).

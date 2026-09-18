@@ -8,6 +8,9 @@ abstract final class AppColors {
   static const cyanSoft = Color(0xFF5CE1FF);
   static const muted = Color(0xFF8B9BB4);
   static const iconWell = Color(0xFF151E30);
+  static const success = Color(0xFF3EE0A0);
+  static const warning = Color(0xFFE8C25A);
+  static const danger = Color(0xFFFF6B7A);
 }
 
 ThemeData buildAppTheme() {
