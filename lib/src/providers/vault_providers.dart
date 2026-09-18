@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/vault_entry.dart';
 import '../services/password_health.dart';
+import '../services/security_alerts.dart';
+import '../services/security_notifications.dart';
 import '../services/vault_envelope.dart';
 import '../services/vault_remote.dart';
 import '../services/vault_repository.dart';
@@ -55,6 +57,16 @@ final vaultHealthProvider = Provider<VaultHealthReport>((ref) {
   return PasswordHealthAnalyzer().analyze(entries);
 });
 
+final securityAlertsProvider = Provider<List<SecurityAlert>>((ref) {
+  return SecurityAlerts.fromReport(ref.watch(vaultHealthProvider));
+});
+
+final securityNotificationPortProvider = Provider<SecurityNotificationPort>((
+  ref,
+) {
+  return SystemSecurityNotifications();
+});
+
 class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   @override
   Future<List<VaultEntry>> build() async {
@@ -96,6 +108,7 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     await repository.unlock(uid, masterPassword);
     state = AsyncData(await repository.load(uid));
     _captureSyncError();
+    await _notifyUnlock();
   }
 
   Future<void> syncRemote() async {
@@ -124,10 +137,15 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   }
 
   Future<void> upsert(VaultEntry entry) async {
+    final previous = state.asData?.value ?? const [];
+    final isNew = previous.every((item) => item.id != entry.id);
     final uid = _requireUid();
     final next = await ref.read(vaultRepositoryProvider).upsert(uid, entry);
     state = AsyncData(next);
     _captureSyncError();
+    if (isNew) {
+      await _notifyIfNewPasswordWeak(entry, next);
+    }
   }
 
   Future<void> delete(String id) async {
@@ -135,6 +153,37 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     final next = await ref.read(vaultRepositoryProvider).delete(uid, id);
     state = AsyncData(next);
     _captureSyncError();
+  }
+
+  Future<void> _notifyUnlock() async {
+    final port = ref.read(securityNotificationPortProvider);
+    await port.prepare();
+    final health = PasswordHealthAnalyzer().analyze(
+      state.asData?.value ?? const [],
+    );
+    await port.sync(health);
+  }
+
+  Future<void> _notifyIfNewPasswordWeak(
+    VaultEntry entry,
+    List<VaultEntry> vault,
+  ) async {
+    final alerts = SecurityAlerts.forDraft(
+      password: entry.password,
+      serviceName: entry.serviceName,
+      username: entry.username,
+      vault: vault,
+      ignoreEntryId: entry.id,
+    );
+    for (final alert in alerts) {
+      if (alert.kind == VaultIssueKind.weak) {
+        await ref.read(securityNotificationPortProvider).notifyWeakPassword(
+          serviceName: entry.serviceName,
+          reason: alert.body,
+        );
+        return;
+      }
+    }
   }
 
   String _requireUid() {

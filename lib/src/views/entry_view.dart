@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/vault_entry.dart';
 import '../providers/vault_providers.dart';
+import '../services/security_alerts.dart';
 import '../theme/app_theme.dart';
 import 'widgets/copy_secret.dart';
 import 'widgets/password_generator_panel.dart';
@@ -67,6 +68,53 @@ class _EntryViewState extends ConsumerState<EntryView> {
         _error = 'Service, identifiant et mot de passe sont requis.';
       });
       return;
+    }
+
+    final alerts = SecurityAlerts.forDraft(
+      password: password,
+      serviceName: service,
+      username: username,
+      vault: ref.read(vaultEntriesProvider).value ?? const [],
+      ignoreEntryId: _existing?.id,
+    );
+    if (alerts.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Alerte de sécurité'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final alert in alerts) ...[
+                  Text(
+                    alert.title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(alert.body),
+                  const SizedBox(height: 12),
+                ],
+                const Text('Enregistrer quand même ?'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Modifier'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Enregistrer'),
+              ),
+            ],
+          );
+        },
+      );
+      if (confirmed != true || !mounted) {
+        return;
+      }
     }
 
     setState(() {
@@ -203,6 +251,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
                               controller: _service,
                               label: 'Service',
                               textInputAction: TextInputAction.next,
+                              onChanged: (_) => setState(() {}),
                             ),
                             const SizedBox(height: 12),
                             SafeVaultTextField(
@@ -217,6 +266,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
                               label: 'Identifiant',
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
+                              onChanged: (_) => setState(() {}),
                             ),
                             const SizedBox(height: 12),
                             SafeVaultTextField(
@@ -228,8 +278,23 @@ class _EntryViewState extends ConsumerState<EntryView> {
                                   _obscure = !_obscure;
                                 });
                               },
+                              onChanged: (_) => setState(() {}),
                               onSubmitted: (_) => _save(),
                             ),
+                            if (_password.text.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              _DraftAlerts(
+                                alerts: SecurityAlerts.forDraft(
+                                  password: _password.text,
+                                  serviceName: _service.text.trim(),
+                                  username: _username.text.trim(),
+                                  vault:
+                                      ref.watch(vaultEntriesProvider).value ??
+                                      const [],
+                                  ignoreEntryId: _existing?.id,
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             PasswordGeneratorPanel(
                               onGenerated: (password) {
@@ -291,6 +356,35 @@ class _EntryViewState extends ConsumerState<EntryView> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DraftAlerts extends StatelessWidget {
+  const _DraftAlerts({required this.alerts});
+
+  final List<SecurityAlert> alerts;
+
+  @override
+  Widget build(BuildContext context) {
+    if (alerts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final alert in alerts) ...[
+          Text(
+            '${alert.title} — ${alert.body}',
+            style: const TextStyle(
+              color: AppColors.danger,
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
+      ],
     );
   }
 }

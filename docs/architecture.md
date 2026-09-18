@@ -46,6 +46,8 @@ sequenceDiagram
 | [`lib/src/views/security_view.dart`](../lib/src/views/security_view.dart) | Santé du coffre (score, doublons, âge) |
 | [`lib/src/services/password_generator.dart`](../lib/src/services/password_generator.dart) | `Random.secure()`, jeux de caractères |
 | [`lib/src/services/password_health.dart`](../lib/src/services/password_health.dart) | Analyse locale : force, SHA-256, obsolescence |
+| [`lib/src/services/security_alerts.dart`](../lib/src/services/security_alerts.dart) | Textes d’alerte (sans secret) |
+| [`lib/src/services/security_notifications.dart`](../lib/src/services/security_notifications.dart) | Notification système, compteurs seulement |
 | [`lib/src/models/vault_entry.dart`](../lib/src/models/vault_entry.dart) | Fiche du coffre (clair en mémoire seulement) |
 | [`lib/src/services/vault_key_derivation.dart`](../lib/src/services/vault_key_derivation.dart) | PBKDF2-HMAC-SHA256 |
 | [`lib/src/services/vault_envelope.dart`](../lib/src/services/vault_envelope.dart) | Format local = document Firestore |

@@ -73,8 +73,8 @@ void main() {
     expect(find.byTooltip('Ajouter une fiche'), findsOneWidget);
     expect(find.text('Générer'), findsOneWidget);
     expect(find.text('Synchroniser'), findsOneWidget);
-    expect(find.text('Voir les conseils'), findsOneWidget);
-    expect(find.text('Coffre vide'), findsOneWidget);
+    expect(find.byTooltip('Santé du coffre'), findsOneWidget);
+    expect(find.text('Voir les conseils'), findsNothing);
     expect(find.text('Ouvrir le générateur'), findsNothing);
   });
 
@@ -93,7 +93,9 @@ void main() {
     expect(find.text('orion'), findsOneWidget);
     expect(find.text('Générer'), findsOneWidget);
     expect(find.text('Synchroniser'), findsOneWidget);
-    expect(find.text('Voir les conseils'), findsOneWidget);
+    expect(find.byTooltip('Santé du coffre'), findsOneWidget);
+    expect(find.text('Voir les conseils'), findsNothing);
+    expect(find.text('1 alerte de sécurité'), findsNothing);
     expect(find.text('Générateur'), findsNothing);
   });
 

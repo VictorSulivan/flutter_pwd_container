@@ -13,6 +13,7 @@ import '../views/home_view.dart';
 import '../views/login_view.dart';
 import '../views/security_view.dart';
 import '../views/unlock_view.dart';
+import 'app_navigator.dart';
 
 abstract final class AppRoutes {
   static const home = '/';
@@ -33,6 +34,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 GoRouter createRouter(Ref ref, Listenable authRefresh) {
   return GoRouter(
+    navigatorKey: appNavigatorKey,
     initialLocation: AppRoutes.home,
     refreshListenable: authRefresh,
     redirect: (context, state) {

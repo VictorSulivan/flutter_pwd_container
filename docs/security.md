@@ -16,8 +16,19 @@ Score global 0–100 : moyenne des scores, puis malus doublons / âge.
 
 ## UI
 
-- Bandeau sur [`home_view.dart`](../lib/src/views/home_view.dart) → **Voir les conseils**
-- Écran [`/security`](../lib/src/views/security_view.dart) : score, compteurs, actions (Modifier / Mettre à jour)
+- Un seul accès depuis la liste : icône bouclier (badge = nombre d’alertes)
+- Écran [`/security`](../lib/src/views/security_view.dart) : score, compteurs, actions
 - Le générateur réutilise le même score de force
+
+## Alertes
+
+Notifications **système** uniquement :
+
+1. **À l’ouverture du coffre** (mot de passe maître) : résumé si le coffre a des problèmes
+2. **À l’enregistrement d’une nouvelle fiche** si le mot de passe est trop faible
+
+Look : marque SafeVault (bouclier cyan, pas le logo Flutter), accent `#3DDCFF`, texte long, bouton **Voir** → `/security`.
+Pas de notif en naviguant. Pas de secret dans le tiroir.
+
 
 Le « conseil » est un texte local (pas un appel réseau). L’assistant IA de `project.md` viendra plus tard, toujours sur des métadonnées, jamais sur le secret.

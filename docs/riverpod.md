@@ -81,6 +81,8 @@ Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : 
 
 `vaultHealthProvider` : score 0–100, compteurs, actions. Dérivé de la liste déchiffrée, jamais persisté.
 
+`securityAlertsProvider` / `securityNotificationPortProvider` : bandeau in-app + notif système après unlock/sauvegarde.
+
 Détail du stockage : [`vault.md`](vault.md). Santé : [`security.md`](security.md).
 
 ## Règles d’usage

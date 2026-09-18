@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/vault_providers.dart';
 import '../services/password_health.dart';
+import '../services/security_alerts.dart';
 import '../theme/app_theme.dart';
 import 'widgets/health_score_ring.dart';
 import 'widgets/safe_vault_chrome.dart';
@@ -116,7 +117,16 @@ class SecurityView extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              if (health.urgentCount > 0)
+                              if (health.issues.isNotEmpty)
+                                Text(
+                                  SecurityAlerts.inboxLabel(health.issues.length),
+                                  style: const TextStyle(
+                                    color: AppColors.danger,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                )
+                              else if (health.urgentCount > 0)
                                 Text(
                                   '${health.urgentCount} urgence${health.urgentCount > 1 ? 's' : ''}',
                                   style: const TextStyle(

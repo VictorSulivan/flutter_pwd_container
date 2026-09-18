@@ -89,3 +89,9 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 **Décision :** complexité, doublons (SHA-256) et âge sont calculés en RAM après `unlock`. Firestore ne reçoit pas d’empreinte ni de score.
 
 **Pourquoi :** une copie cloud des hashs aiderait un attaquant qui a déjà l’enveloppe. L’UI « conseil » est un texte local ; l’IA prévue plus tard ne verra que des métadonnées (longueur, doublon oui/non, âge).
+
+## D14 — Alertes locales, pas de push cloud
+
+**Décision :** bandeau in-app + notification dans le tiroir Android (plugin local + permission FCM). Jeton FCM stocké sous `users/{uid}/fcmTokens`. Pas de Cloud Function pour l’instant.
+
+**Pourquoi :** une notif distante calculée dans le cloud exigerait d’y envoyer des métadonnées de santé. L’analyse reste sur l’appareil ; le téléphone affiche ensuite une vraie notification système. Le jeton FCM permet un push console / serveur plus tard, toujours sans secret.
