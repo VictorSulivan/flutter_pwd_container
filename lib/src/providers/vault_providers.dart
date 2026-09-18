@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/vault_entry.dart';
+import '../services/password_health.dart';
 import '../services/vault_envelope.dart';
 import '../services/vault_remote.dart';
 import '../services/vault_repository.dart';
@@ -48,6 +49,11 @@ final vaultEntriesProvider =
     AsyncNotifierProvider<VaultEntriesNotifier, List<VaultEntry>>(
       VaultEntriesNotifier.new,
     );
+
+final vaultHealthProvider = Provider<VaultHealthReport>((ref) {
+  final entries = ref.watch(vaultEntriesProvider).asData?.value ?? const [];
+  return PasswordHealthAnalyzer().analyze(entries);
+});
 
 class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   @override

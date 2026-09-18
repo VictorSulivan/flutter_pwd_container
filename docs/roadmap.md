@@ -13,14 +13,14 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 7. **Sync Firestore** — 1 enveloppe + X fiches chiffrées sous `users/{uid}`.
 8. **UI liste** — fiches, recherche, édition, copie 30 s.
 9. **Générateur** — longueur / jeux de caractères, copie 30 s, hors Firebase.
+10. **Santé du coffre** — complexité, doublons (SHA-256), obsolescence 90 j, écran `/security`.
 
 ## Suivant
 
-Alertes de sécurité in-app (doublons, faiblesse, obsolescence).
-
-Ensuite : biométrie, IA, login e-mail.
+Biométrie, puis IA (métadonnées seulement), puis login e-mail.
 
 ## Hors code pour l’instant
 
-- Push notifications distantes (les alertes pourront d’abord être in-app).
+- Push notifications distantes (les alertes sont in-app).
 - Login e-mail (volontairement retiré de l’UI actuelle).
+- Recherche de fuites web (Have I Been Pwned, etc.).

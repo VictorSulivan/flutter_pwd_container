@@ -56,7 +56,7 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 ## D8 — Développement par petites étapes
 
-Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître → sync → UI liste → générateur (fait) → alertes.
+Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore console → UI maître → sync → UI liste → générateur → santé du coffre (fait) → biométrie.
 
 **Pourquoi :** chaque étape = un commit, revue possible, pas de « big bang ».
 
@@ -83,3 +83,9 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 **Pourquoi :** Google Sign-In ne doit pas suffire à lire le coffre. Un merge champ par champ des fiches exigerait de déchiffrer dans le cloud.
 
 **Revoir si :** deux appareils écrivent hors-ligne puis se reconnectent (un des deux perd ses dernières fiches). Un CRDT / historique de versions serait plus lourd.
+
+## D13 — Santé du coffre en local, pas dans le cloud
+
+**Décision :** complexité, doublons (SHA-256) et âge sont calculés en RAM après `unlock`. Firestore ne reçoit pas d’empreinte ni de score.
+
+**Pourquoi :** une copie cloud des hashs aiderait un attaquant qui a déjà l’enveloppe. L’UI « conseil » est un texte local ; l’IA prévue plus tard ne verra que des métadonnées (longueur, doublon oui/non, âge).

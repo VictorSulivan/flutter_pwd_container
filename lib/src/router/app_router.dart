@@ -11,6 +11,7 @@ import '../views/entry_view.dart';
 import '../views/generator_view.dart';
 import '../views/home_view.dart';
 import '../views/login_view.dart';
+import '../views/security_view.dart';
 import '../views/unlock_view.dart';
 
 abstract final class AppRoutes {
@@ -18,6 +19,7 @@ abstract final class AppRoutes {
   static const login = '/login';
   static const unlock = '/unlock';
   static const generator = '/generator';
+  static const security = '/security';
   static const entryNew = '/entry/new';
 }
 
@@ -71,6 +73,10 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
       GoRoute(
         path: AppRoutes.generator,
         builder: (context, state) => const GeneratorView(),
+      ),
+      GoRoute(
+        path: AppRoutes.security,
+        builder: (context, state) => const SecurityView(),
       ),
       GoRoute(
         path: AppRoutes.entryNew,

@@ -28,18 +28,20 @@ class _DotGridPainter extends CustomPainter {
 }
 
 class SafeVaultHeader extends StatelessWidget {
-  const SafeVaultHeader({super.key});
+  const SafeVaultHeader({super.key, this.title = 'Coffre'});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        _HeaderBadge(),
-        SizedBox(width: 10),
+        const _HeaderBadge(),
+        const SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'SAFEVAULT',
               style: TextStyle(
                 color: AppColors.cyan,
@@ -49,8 +51,8 @@ class SafeVaultHeader extends StatelessWidget {
               ),
             ),
             Text(
-              'Coffre',
-              style: TextStyle(
+              title,
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 height: 1.1,

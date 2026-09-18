@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../services/password_health.dart';
 import '../theme/app_theme.dart';
 import 'widgets/copy_secret.dart';
+import 'widgets/health_score_ring.dart';
 import 'widgets/password_generator_panel.dart';
 import 'widgets/safe_vault_chrome.dart';
 
@@ -42,7 +44,9 @@ class _GeneratorViewState extends State<GeneratorView> {
                         onPressed: () => context.go('/'),
                         icon: const Icon(Icons.arrow_back),
                       ),
-                      const Expanded(child: SafeVaultHeader()),
+                      const Expanded(
+                        child: SafeVaultHeader(title: 'Générateur'),
+                      ),
                     ],
                   ),
                 ),
@@ -55,15 +59,6 @@ class _GeneratorViewState extends State<GeneratorView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Générateur',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
                             const Text(
                               'Rien n’est envoyé à Firebase.',
                               style: TextStyle(
@@ -99,6 +94,8 @@ class _GeneratorViewState extends State<GeneratorView> {
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 10),
+                              _GeneratedStrength(password: _password.text),
                               const SizedBox(height: 8),
                               TextButton.icon(
                                 onPressed: () => copySecretToClipboard(
@@ -130,6 +127,80 @@ class _GeneratorViewState extends State<GeneratorView> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GeneratedStrength extends StatelessWidget {
+  const _GeneratedStrength({required this.password});
+
+  final String password;
+
+  static const _labels = {
+    PasswordStrength.fragile: 'Fragile',
+    PasswordStrength.faible: 'Faible',
+    PasswordStrength.correct: 'Correcte',
+    PasswordStrength.robuste: 'Robuste',
+    PasswordStrength.excellent: 'Excellente sécurité',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final report = PasswordHealthAnalyzer().assess(password);
+    final filled = switch (report.strength) {
+      PasswordStrength.fragile => 1,
+      PasswordStrength.faible => 2,
+      PasswordStrength.correct => 3,
+      PasswordStrength.robuste => 4,
+      PasswordStrength.excellent => 5,
+    };
+    final color = HealthScoreRing.colorFor(report.score);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Force du mot de passe',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.muted, fontSize: 12),
+              ),
+            ),
+            Icon(Icons.verified, color: color, size: 16),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                _labels[report.strength]!,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (var i = 0; i < 5; i++) ...[
+              if (i > 0) const SizedBox(width: 6),
+              Expanded(
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i < filled ? color : AppColors.cardBorder,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

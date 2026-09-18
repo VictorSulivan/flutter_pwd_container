@@ -79,7 +79,9 @@ Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : 
 
 `vaultSyncErrorProvider` : dernière erreur de copie cloud, affichée en bandeau (le coffre local continue).
 
-Détail du stockage : [`vault.md`](vault.md).
+`vaultHealthProvider` : score 0–100, compteurs, actions. Dérivé de la liste déchiffrée, jamais persisté.
+
+Détail du stockage : [`vault.md`](vault.md). Santé : [`security.md`](security.md).
 
 ## Règles d’usage
 
@@ -91,4 +93,4 @@ Détail du stockage : [`vault.md`](vault.md).
 
 ## Ce qui viendra
 
-Les alertes. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.
+Biométrie, puis un assistant IA sur **métadonnées** seulement. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.

@@ -5,6 +5,7 @@ import 'package:flutter_pwd_container/src/views/entry_view.dart';
 import 'package:flutter_pwd_container/src/views/generator_view.dart';
 import 'package:flutter_pwd_container/src/views/home_view.dart';
 import 'package:flutter_pwd_container/src/views/login_view.dart';
+import 'package:flutter_pwd_container/src/views/security_view.dart';
 import 'package:flutter_pwd_container/src/views/unlock_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,6 +73,8 @@ void main() {
     expect(find.byTooltip('Ajouter une fiche'), findsOneWidget);
     expect(find.text('Générer'), findsOneWidget);
     expect(find.text('Synchroniser'), findsOneWidget);
+    expect(find.text('Voir les conseils'), findsOneWidget);
+    expect(find.text('Coffre vide'), findsOneWidget);
     expect(find.text('Ouvrir le générateur'), findsNothing);
   });
 
@@ -90,6 +93,7 @@ void main() {
     expect(find.text('orion'), findsOneWidget);
     expect(find.text('Générer'), findsOneWidget);
     expect(find.text('Synchroniser'), findsOneWidget);
+    expect(find.text('Voir les conseils'), findsOneWidget);
     expect(find.text('Générateur'), findsNothing);
   });
 
@@ -113,6 +117,29 @@ void main() {
     await tester.pump();
 
     expect(find.text('Copier (30 s)'), findsOneWidget);
+    expect(find.text('Force du mot de passe'), findsOneWidget);
+  });
+
+  testWidgets('affiche la santé d’un coffre vide', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          vaultEntriesProvider.overrideWith(_EmptyEntries.new),
+        ],
+        child: const MaterialApp(home: SecurityView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Santé du Coffre'), findsOneWidget);
+    expect(find.text('Coffre vide'), findsOneWidget);
+    expect(find.text('Robustes'), findsOneWidget);
+    expect(find.text('Dupliqués'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Analyse locale activée'),
+      200,
+    );
+    expect(find.text('Analyse locale activée'), findsOneWidget);
   });
 }
 

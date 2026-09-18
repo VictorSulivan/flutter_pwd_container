@@ -8,8 +8,10 @@ import 'package:go_router/go_router.dart';
 import '../models/vault_entry.dart';
 import '../providers/auth_providers.dart';
 import '../providers/vault_providers.dart';
+import '../services/password_health.dart';
 import '../theme/app_theme.dart';
 import 'widgets/copy_secret.dart';
+import 'widgets/health_score_ring.dart';
 import 'widgets/safe_vault_chrome.dart';
 
 class HomeView extends ConsumerStatefulWidget {
@@ -103,6 +105,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         label: const Text('Générer'),
                       ),
                       IconButton(
+                        tooltip: 'Santé du coffre',
+                        onPressed: () => context.go('/security'),
+                        icon: const Icon(Icons.shield_outlined),
+                      ),
+                      IconButton(
                         tooltip: 'Verrouiller le coffre',
                         onPressed: () {
                           ref.read(vaultEntriesProvider.notifier).lock();
@@ -138,6 +145,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     ),
                     data: (all) {
                       final visible = _filtered(all);
+                      final health = ref.watch(vaultHealthProvider);
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 88),
                         children: [
@@ -154,6 +162,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                             prefixIcon: const Icon(Icons.search),
                             onChanged: (_) => setState(() {}),
                           ),
+                          const SizedBox(height: 12),
+                          _HealthBanner(health: health),
                           const SizedBox(height: 12),
                           _SyncButton(
                             syncing: _syncing,
@@ -187,6 +197,81 @@ class _HomeViewState extends ConsumerState<HomeView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HealthBanner extends StatelessWidget {
+  const _HealthBanner({required this.health});
+
+  final VaultHealthReport health;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = HealthScoreRing.colorFor(health.score);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => context.go('/security'),
+        child: SafeVaultCard(
+          borderRadius: 18,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            children: [
+              HealthScoreRing(score: health.score, size: 52, strokeWidth: 5),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            health.headline,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      health.subtitle,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Text(
+                'Voir les conseils',
+                style: TextStyle(
+                  color: AppColors.cyan,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right, color: AppColors.cyan, size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }
