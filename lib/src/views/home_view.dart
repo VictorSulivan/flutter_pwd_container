@@ -77,7 +77,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
   Widget build(BuildContext context) {
     final entries = ref.watch(vaultEntriesProvider);
     final syncError = ref.watch(vaultSyncErrorProvider);
-    final alerts = ref.watch(securityAlertsProvider);
+    final health = ref.watch(vaultHealthProvider);
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
@@ -107,8 +107,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         tooltip: 'Santé du coffre',
                         onPressed: () => context.go('/security'),
                         icon: Badge(
-                          isLabelVisible: alerts.isNotEmpty,
-                          label: Text('${alerts.length}'),
+                          isLabelVisible: health.flaggedCount > 0,
+                          label: Text('${health.flaggedCount}'),
                           child: const Icon(Icons.shield_outlined),
                         ),
                       ),

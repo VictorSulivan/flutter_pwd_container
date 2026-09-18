@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/vault_entry.dart';
 import '../providers/vault_providers.dart';
+import '../services/password_health.dart';
+import '../services/pwned_passwords.dart';
 import '../services/security_alerts.dart';
 import '../theme/app_theme.dart';
 import 'widgets/copy_secret.dart';
+import 'widgets/health_score_ring.dart';
 import 'widgets/password_generator_panel.dart';
 import 'widgets/safe_vault_chrome.dart';
 
@@ -28,6 +33,8 @@ class _EntryViewState extends ConsumerState<EntryView> {
   bool _loading = false;
   String? _error;
   VaultEntry? _existing;
+  Timer? _pwnedDebounce;
+  PwnedPasswordHit? _pwnedHit;
 
   bool get _isNew => widget.entryId == null;
 
@@ -48,10 +55,16 @@ class _EntryViewState extends ConsumerState<EntryView> {
         }
       }
     }
+    if (_password.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_checkPwned(_password.text));
+      });
+    }
   }
 
   @override
   void dispose() {
+    _pwnedDebounce?.cancel();
     _service.dispose();
     _url.dispose();
     _username.dispose();
@@ -70,13 +83,10 @@ class _EntryViewState extends ConsumerState<EntryView> {
       return;
     }
 
-    final alerts = SecurityAlerts.forDraft(
-      password: password,
-      serviceName: service,
-      username: username,
-      vault: ref.read(vaultEntriesProvider).value ?? const [],
-      ignoreEntryId: _existing?.id,
-    );
+    final alerts = await _draftAlerts(password);
+    if (!mounted) {
+      return;
+    }
     if (alerts.isNotEmpty) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -199,6 +209,48 @@ class _EntryViewState extends ConsumerState<EntryView> {
     context.go('/');
   }
 
+  void _schedulePwnedCheck(String password) {
+    _pwnedDebounce?.cancel();
+    if (password.length < 8) {
+      setState(() {
+        _pwnedHit = null;
+      });
+      return;
+    }
+    _pwnedDebounce = Timer(const Duration(milliseconds: 500), () {
+      unawaited(_checkPwned(password));
+    });
+  }
+
+  Future<void> _checkPwned(String password) async {
+    final hit = await ref.read(pwnedPasswordsLookupProvider).check(password);
+    if (!mounted || password != _password.text) {
+      return;
+    }
+    setState(() {
+      _pwnedHit = hit.pwned ? hit : null;
+    });
+  }
+
+  Future<List<SecurityAlert>> _draftAlerts(String password) async {
+    final alerts = List<SecurityAlert>.from(
+      SecurityAlerts.forDraft(
+        password: password,
+        serviceName: _service.text.trim(),
+        username: _username.text.trim(),
+        vault: ref.read(vaultEntriesProvider).value ?? const [],
+        ignoreEntryId: _existing?.id,
+      ),
+    );
+    final hit = _pwnedHit?.pwned == true && _password.text == password
+        ? _pwnedHit!
+        : await ref.read(pwnedPasswordsLookupProvider).check(password);
+    if (hit.pwned) {
+      alerts.insert(0, SecurityAlerts.pwnedDraft(hit));
+    }
+    return alerts;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -278,20 +330,52 @@ class _EntryViewState extends ConsumerState<EntryView> {
                                   _obscure = !_obscure;
                                 });
                               },
-                              onChanged: (_) => setState(() {}),
+                              onChanged: (_) {
+                                setState(() {});
+                                _schedulePwnedCheck(_password.text);
+                              },
                               onSubmitted: (_) => _save(),
                             ),
                             if (_password.text.isNotEmpty) ...[
                               const SizedBox(height: 10),
                               _DraftAlerts(
-                                alerts: SecurityAlerts.forDraft(
-                                  password: _password.text,
-                                  serviceName: _service.text.trim(),
-                                  username: _username.text.trim(),
+                                alerts: [
+                                  if (_pwnedHit != null)
+                                    SecurityAlerts.pwnedDraft(_pwnedHit!),
+                                  ...SecurityAlerts.forDraft(
+                                    password: _password.text,
+                                    serviceName: _service.text.trim(),
+                                    username: _username.text.trim(),
+                                    vault:
+                                        ref.watch(vaultEntriesProvider).value ??
+                                        const [],
+                                    ignoreEntryId: _existing?.id,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              _LiveEntryHealth(
+                                report: PasswordHealthAnalyzer().inspectEntry(
+                                  VaultEntry(
+                                    id: _existing?.id ?? 'draft',
+                                    serviceName: _service.text.trim().isEmpty
+                                        ? 'Fiche'
+                                        : _service.text.trim(),
+                                    username: _username.text.trim().isEmpty
+                                        ? '-'
+                                        : _username.text.trim(),
+                                    password: _password.text,
+                                    createdAt:
+                                        _existing?.createdAt ??
+                                        DateTime.now().toUtc(),
+                                    updatedAt:
+                                        _existing?.updatedAt ??
+                                        DateTime.now().toUtc(),
+                                  ),
                                   vault:
                                       ref.watch(vaultEntriesProvider).value ??
                                       const [],
-                                  ignoreEntryId: _existing?.id,
+                                  pwnedAppearances: _pwnedHit?.count ?? 0,
                                 ),
                               ),
                             ],
@@ -302,6 +386,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
                                   _password.text = password;
                                   _obscure = false;
                                 });
+                                _schedulePwnedCheck(password);
                               },
                             ),
                             const SizedBox(height: 24),
@@ -385,6 +470,49 @@ class _DraftAlerts extends StatelessWidget {
           const SizedBox(height: 6),
         ],
       ],
+    );
+  }
+}
+
+class _LiveEntryHealth extends StatelessWidget {
+  const _LiveEntryHealth({required this.report});
+
+  final EntryHealthReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeVaultCard(
+      borderRadius: 18,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          HealthScoreRing(score: report.score, size: 52, strokeWidth: 5),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Analyse de cette fiche',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  report.hasIssue
+                      ? report.issues.map((issue) => issue.message).join(' · ')
+                      : 'Aucun signal sur ce mot de passe.',
+                  style: TextStyle(
+                    color: report.hasIssue ? AppColors.danger : AppColors.muted,
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

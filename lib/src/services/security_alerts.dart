@@ -1,5 +1,6 @@
 import '../models/vault_entry.dart';
 import 'password_health.dart';
+import 'pwned_passwords.dart';
 
 class SecurityAlert {
   const SecurityAlert({
@@ -21,6 +22,7 @@ class SecurityAlert {
       id: '${issue.kind.name}:${issue.entryId}',
       kind: issue.kind,
       title: switch (issue.kind) {
+        VaultIssueKind.pwned => 'Mot de passe fuité',
         VaultIssueKind.duplicate => 'Mot de passe réutilisé',
         VaultIssueKind.weak => 'Mot de passe trop fragile',
         VaultIssueKind.stale => 'Mot de passe à renouveler',
@@ -98,11 +100,22 @@ class SecurityAlerts {
     return alerts;
   }
 
-  static String inboxLabel(int count) {
+  static SecurityAlert pwnedDraft(PwnedPasswordHit hit) {
+    return SecurityAlert(
+      id: 'pwned:draft',
+      kind: VaultIssueKind.pwned,
+      title: 'Mot de passe fuité',
+      body: hit.count == 1
+          ? 'Déjà vu dans une fuite publique.'
+          : 'Déjà vu dans ${hit.count} fuites publiques.',
+    );
+  }
+
+  static String ficheLabel(int count) {
     if (count <= 0) {
-      return 'Aucune alerte';
+      return 'Tout est à jour';
     }
-    return '$count alerte${count > 1 ? 's' : ''} de sécurité';
+    return '$count fiche${count > 1 ? 's' : ''} à revoir';
   }
 
   /// Texte pour la barre système : compteurs seulement, pas de nom de service.
@@ -111,6 +124,8 @@ class SecurityAlerts {
       return '';
     }
     final parts = <String>[
+      if (report.pwnedCount > 0)
+        '${report.pwnedCount} fuité${report.pwnedCount > 1 ? 's' : ''}',
       if (report.duplicateCount > 0)
         '${report.duplicateCount} dupliqué${report.duplicateCount > 1 ? 's' : ''}',
       if (report.weakCount > 0)

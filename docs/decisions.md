@@ -95,3 +95,11 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 **Décision :** bandeau in-app + notification dans le tiroir Android (plugin local + permission FCM). Jeton FCM stocké sous `users/{uid}/fcmTokens`. Pas de Cloud Function pour l’instant.
 
 **Pourquoi :** une notif distante calculée dans le cloud exigerait d’y envoyer des métadonnées de santé. L’analyse reste sur l’appareil ; le téléphone affiche ensuite une vraie notification système. Le jeton FCM permet un push console / serveur plus tard, toujours sans secret.
+
+## D15 — HIBP Pwned Passwords en k-anonymity, pas le secret
+
+**Décision :** la recherche de fuites tourne **sur le téléphone**. SHA-1 local, requête `range/{5 caractères}`, comparaison du suffixe en local. Pas de clé API. Pas d’envoi du mot de passe, du hash complet, de l’e-mail ni du nom de service.
+
+**Pourquoi :** l’API Pwned Passwords est gratuite et conçue pour ça. L’API e-mail HIBP (payante) n’est pas utilisée.
+
+**Revoir si :** usage hors-ligne strict (télécharger le corpus complet).

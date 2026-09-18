@@ -43,9 +43,10 @@ sequenceDiagram
 | [`lib/src/views/home_view.dart`](../lib/src/views/home_view.dart) | Liste des fiches + recherche |
 | [`lib/src/views/entry_view.dart`](../lib/src/views/entry_view.dart) | Création / édition d’une fiche |
 | [`lib/src/views/generator_view.dart`](../lib/src/views/generator_view.dart) | Générateur indépendant |
-| [`lib/src/views/security_view.dart`](../lib/src/views/security_view.dart) | Santé du coffre (score, doublons, âge) |
+| [`lib/src/views/security_view.dart`](../lib/src/views/security_view.dart) | Santé du coffre (score, fuites, doublons, âge) |
 | [`lib/src/services/password_generator.dart`](../lib/src/services/password_generator.dart) | `Random.secure()`, jeux de caractères |
-| [`lib/src/services/password_health.dart`](../lib/src/services/password_health.dart) | Analyse locale : force, SHA-256, obsolescence |
+| [`lib/src/services/password_health.dart`](../lib/src/services/password_health.dart) | Analyse locale : force, SHA-256, obsolescence, fuites |
+| [`lib/src/services/pwned_passwords.dart`](../lib/src/services/pwned_passwords.dart) | HIBP k-anonymity (préfixe SHA-1 seulement) |
 | [`lib/src/services/security_alerts.dart`](../lib/src/services/security_alerts.dart) | Textes d’alerte (sans secret) |
 | [`lib/src/services/security_notifications.dart`](../lib/src/services/security_notifications.dart) | Notification système, compteurs seulement |
 | [`lib/src/models/vault_entry.dart`](../lib/src/models/vault_entry.dart) | Fiche du coffre (clair en mémoire seulement) |

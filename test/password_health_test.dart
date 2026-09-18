@@ -54,7 +54,7 @@ void main() {
       health.issues.where((issue) => issue.kind == VaultIssueKind.duplicate),
       hasLength(2),
     );
-    expect(health.tip, contains('partagent le même mot de passe'));
+    expect(health.tip, contains('partagent le même secret'));
     expect(health.issues.toString(), isNot(contains('reused-secret-42')));
   });
 
@@ -78,6 +78,18 @@ void main() {
     expect(health.issues.single.message, contains('mois'));
   });
 
+  test('test2 reste fragile même sans fuite', () {
+    final entry = analyzer.entry('Demo', 'test2');
+    final health = PasswordHealthAnalyzer().analyze([entry], now: now);
+    final report = health.entries.single;
+    expect(report.score, lessThan(30));
+    expect(report.complexityScore, lessThan(30));
+    expect(report.weak, isTrue);
+    expect(report.pwned, isFalse);
+    expect(report.score, report.complexityScore);
+    expect(health.score, lessThan(30));
+  });
+
   test('un mot de passe trop court est une urgence', () {
     final health = PasswordHealthAnalyzer().analyze(
       [analyzer.entry('AWS', 'abc')],
@@ -87,6 +99,57 @@ void main() {
     expect(health.urgentCount, 1);
     expect(health.headline, 'À renforcer');
     expect(health.issues.single.kind, VaultIssueKind.weak);
+  });
+
+  test('un mot de passe fuité reste prioritaire sans exposer le secret', () {
+    final entry = analyzer.entry('GitHub', 'Vg7#kL92mQp!xR4s');
+    final health = PasswordHealthAnalyzer().analyze(
+      [entry],
+      now: now,
+      pwnedCounts: {entry.id: 42},
+    );
+    expect(health.pwnedCount, 1);
+    expect(health.robustCount, 0);
+    expect(health.issues.first.kind, VaultIssueKind.pwned);
+    expect(health.issues.first.message, contains('42'));
+    expect(health.tip, contains('fuites'));
+    expect(health.issues.toString(), isNot(contains('Vg7#kL92mQp!xR4s')));
+    expect(
+      health.entries.single.score,
+      lessThan(health.entries.single.complexityScore),
+    );
+  });
+
+  test('un même mot de passe peut être fragile, vieux et fuité', () {
+    final entry = VaultEntry(
+      id: 'aws',
+      serviceName: 'AWS',
+      username: 'user',
+      password: 'abc',
+      createdAt: now.subtract(const Duration(days: 200)),
+      updatedAt: now.subtract(const Duration(days: 200)),
+    );
+    final health = PasswordHealthAnalyzer().analyze(
+      [entry],
+      now: now,
+      pwnedCounts: {entry.id: 12},
+    );
+    expect(health.weakCount, 1);
+    expect(health.staleCount, 1);
+    expect(health.pwnedCount, 1);
+    expect(health.flaggedCount, 1);
+    expect(health.entries, hasLength(1));
+    expect(health.entries.single.weak, isTrue);
+    expect(health.entries.single.stale, isTrue);
+    expect(health.entries.single.pwned, isTrue);
+    expect(health.issues.map((issue) => issue.kind), containsAll([
+      VaultIssueKind.pwned,
+      VaultIssueKind.weak,
+      VaultIssueKind.stale,
+    ]));
+    expect(health.tip, contains('plusieurs signaux'));
+    expect(health.entries.single.score, 0);
+    expect(health.entries.single.complexityScore, lessThanOrEqualTo(24));
   });
 }
 

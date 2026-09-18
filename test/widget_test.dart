@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pwd_container/src/models/vault_entry.dart';
 import 'package:flutter_pwd_container/src/providers/vault_providers.dart';
+import 'package:flutter_pwd_container/src/services/pwned_passwords.dart';
 import 'package:flutter_pwd_container/src/views/entry_view.dart';
 import 'package:flutter_pwd_container/src/views/generator_view.dart';
 import 'package:flutter_pwd_container/src/views/home_view.dart';
@@ -13,8 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('affiche le bouton de connexion Google', (tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: _pwnedOverride,
+        child: const MaterialApp(
           home: LoginView(),
         ),
       ),
@@ -28,6 +30,7 @@ void main() {
       ProviderScope(
         overrides: [
           vaultExistsProvider.overrideWith((ref) async => false),
+          ..._pwnedOverride,
         ],
         child: const MaterialApp(home: UnlockView()),
       ),
@@ -47,6 +50,7 @@ void main() {
       ProviderScope(
         overrides: [
           vaultExistsProvider.overrideWith((ref) async => true),
+          ..._pwnedOverride,
         ],
         child: const MaterialApp(home: UnlockView()),
       ),
@@ -63,6 +67,7 @@ void main() {
       ProviderScope(
         overrides: [
           vaultEntriesProvider.overrideWith(_EmptyEntries.new),
+          ..._pwnedOverride,
         ],
         child: const MaterialApp(home: HomeView()),
       ),
@@ -83,6 +88,7 @@ void main() {
       ProviderScope(
         overrides: [
           vaultEntriesProvider.overrideWith(_GitHubEntries.new),
+          ..._pwnedOverride,
         ],
         child: const MaterialApp(home: HomeView()),
       ),
@@ -101,8 +107,9 @@ void main() {
 
   testWidgets('affiche le formulaire d’une nouvelle fiche', (tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: EntryView()),
+      ProviderScope(
+        overrides: _pwnedOverride,
+        child: const MaterialApp(home: EntryView()),
       ),
     );
     await tester.pumpAndSettle();
@@ -127,6 +134,7 @@ void main() {
       ProviderScope(
         overrides: [
           vaultEntriesProvider.overrideWith(_EmptyEntries.new),
+          ..._pwnedOverride,
         ],
         child: const MaterialApp(home: SecurityView()),
       ),
@@ -135,8 +143,12 @@ void main() {
 
     expect(find.text('Santé du Coffre'), findsOneWidget);
     expect(find.text('Coffre vide'), findsOneWidget);
-    expect(find.text('Robustes'), findsOneWidget);
-    expect(find.text('Dupliqués'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Analyse par mot de passe'),
+      200,
+    );
+    expect(find.text('Analyse par mot de passe'), findsOneWidget);
+    expect(find.text('Rien à analyser pour le moment.'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Analyse locale activée'),
       200,
@@ -144,6 +156,10 @@ void main() {
     expect(find.text('Analyse locale activée'), findsOneWidget);
   });
 }
+
+final _pwnedOverride = [
+  pwnedPasswordsLookupProvider.overrideWithValue(MemoryPwnedPasswords()),
+];
 
 class _EmptyEntries extends VaultEntriesNotifier {
   @override

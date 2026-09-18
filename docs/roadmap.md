@@ -15,13 +15,14 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 9. **Générateur** — longueur / jeux de caractères, copie 30 s, hors Firebase.
 10. **Santé du coffre** — complexité, doublons (SHA-256), obsolescence 90 j, écran `/security`.
 11. **Alertes** — in-app + notification locale (compteurs), à l’unlock et à l’enregistrement.
+12. **Fuites HIBP** — Pwned Passwords k-anonymity, hash et comparaison sur le téléphone.
 
 ## Suivant
 
-Biométrie, puis IA (métadonnées seulement), puis login e-mail.
+Biométrie, puis assistant IA local (compteurs seulement), puis login e-mail.
 
 ## Hors code pour l’instant
 
 - Push FCM depuis un serveur / Cloud Function (le jeton est déjà enregistré ; l’analyse du coffre reste locale).
 - Login e-mail (volontairement retiré de l’UI actuelle).
-- Recherche de fuites web (Have I Been Pwned, etc.).
+- Recherche de fuites **par e-mail** (API HIBP payante). Les fuites **de mot de passe** (Pwned Passwords) sont en place.

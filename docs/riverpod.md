@@ -79,7 +79,9 @@ Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : 
 
 `vaultSyncErrorProvider` : dernière erreur de copie cloud, affichée en bandeau (le coffre local continue).
 
-`vaultHealthProvider` : score 0–100, compteurs, actions. Dérivé de la liste déchiffrée, jamais persisté.
+`vaultHealthProvider` : score 0–100, compteurs, actions. Dérivé de la liste déchiffrée + hits HIBP, jamais persisté.
+
+`pwnedPasswordsLookupProvider` / `pwnedHitsProvider` : k-anonymity sur le téléphone.
 
 `securityAlertsProvider` / `securityNotificationPortProvider` : bandeau in-app + notif système après unlock/sauvegarde.
 

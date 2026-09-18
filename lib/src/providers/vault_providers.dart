@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/vault_entry.dart';
 import '../services/password_health.dart';
+import '../services/pwned_passwords.dart';
 import '../services/security_alerts.dart';
 import '../services/security_notifications.dart';
 import '../services/vault_envelope.dart';
@@ -54,7 +56,13 @@ final vaultEntriesProvider =
 
 final vaultHealthProvider = Provider<VaultHealthReport>((ref) {
   final entries = ref.watch(vaultEntriesProvider).asData?.value ?? const [];
-  return PasswordHealthAnalyzer().analyze(entries);
+  final hits = ref.watch(pwnedHitsProvider).asData?.value ?? const {};
+  return PasswordHealthAnalyzer().analyze(
+    entries,
+    pwnedCounts: {
+      for (final entry in hits.entries) entry.key: entry.value.count,
+    },
+  );
 });
 
 final securityAlertsProvider = Provider<List<SecurityAlert>>((ref) {
@@ -66,6 +74,21 @@ final securityNotificationPortProvider = Provider<SecurityNotificationPort>((
 ) {
   return SystemSecurityNotifications();
 });
+
+final pwnedPasswordsLookupProvider = Provider<PwnedPasswordsLookup>((ref) {
+  return HibpPwnedPasswords();
+});
+
+final pwnedHitsProvider =
+    FutureProvider<Map<String, PwnedPasswordHit>>((ref) async {
+      final entries = ref.watch(vaultEntriesProvider).asData?.value ?? const [];
+      if (entries.isEmpty) {
+        return const {};
+      }
+      return ref.watch(pwnedPasswordsLookupProvider).checkEntries([
+        for (final entry in entries) (id: entry.id, password: entry.password),
+      ]);
+    });
 
 class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   @override
@@ -158,8 +181,21 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   Future<void> _notifyUnlock() async {
     final port = ref.read(securityNotificationPortProvider);
     await port.prepare();
+    final entries = state.asData?.value ?? const [];
+    Map<String, int> pwnedCounts = const {};
+    try {
+      final hits = await ref.read(pwnedPasswordsLookupProvider).checkEntries([
+        for (final entry in entries) (id: entry.id, password: entry.password),
+      ]);
+      pwnedCounts = {
+        for (final hit in hits.entries) hit.key: hit.value.count,
+      };
+    } on Object catch (error) {
+      debugPrint('HIBP unlock: $error');
+    }
     final health = PasswordHealthAnalyzer().analyze(
-      state.asData?.value ?? const [],
+      entries,
+      pwnedCounts: pwnedCounts,
     );
     await port.sync(health);
   }
@@ -168,6 +204,20 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     VaultEntry entry,
     List<VaultEntry> vault,
   ) async {
+    try {
+      final hit = await ref.read(pwnedPasswordsLookupProvider).check(
+        entry.password,
+      );
+      if (hit.pwned) {
+        await ref.read(securityNotificationPortProvider).notifyWeakPassword(
+          serviceName: entry.serviceName,
+          reason: SecurityAlerts.pwnedDraft(hit).body,
+        );
+        return;
+      }
+    } on Object catch (error) {
+      debugPrint('HIBP save: $error');
+    }
     final alerts = SecurityAlerts.forDraft(
       password: entry.password,
       serviceName: entry.serviceName,

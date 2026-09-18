@@ -59,6 +59,22 @@ void main() {
     expect(body, isNot(contains('password')));
   });
 
+  test('le texte système mentionne les fuites sans secret', () {
+    final entry = VaultEntry.create(
+      serviceName: 'GitHub',
+      username: 'orion',
+      password: 'Vg7#kL92mQp!xR4s',
+    );
+    final health = PasswordHealthAnalyzer().analyze(
+      [entry],
+      pwnedCounts: {entry.id: 12},
+    );
+    final body = SecurityAlerts.trayBody(health);
+    expect(body, contains('fuité'));
+    expect(body, isNot(contains('GitHub')));
+    expect(body, isNot(contains('Vg7#kL92mQp!xR4s')));
+  });
+
   test('le message long reste sans secret', () {
     final health = PasswordHealthAnalyzer().analyze([
       VaultEntry.create(

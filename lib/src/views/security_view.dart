@@ -54,6 +54,7 @@ class SecurityView extends ConsumerWidget {
                     ),
                     data: (all) {
                       final health = ref.watch(vaultHealthProvider);
+                      final pwnedAsync = ref.watch(pwnedHitsProvider);
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
                         children: [
@@ -88,6 +89,20 @@ class SecurityView extends ConsumerWidget {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: _StatCard(
+                                  value: health.pwnedCount,
+                                  label: pwnedAsync.isLoading
+                                      ? 'Fuites…'
+                                      : 'Fuites',
+                                  color: AppColors.danger,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _StatCard(
                                   value: health.staleCount,
                                   label: 'À renouveler',
                                   color: AppColors.warning,
@@ -103,6 +118,14 @@ class SecurityView extends ConsumerWidget {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Une fiche peut compter dans plusieurs catégories.',
+                            style: TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12,
+                            ),
+                          ),
                           const SizedBox(height: 12),
                           _TipCard(tip: health.tip),
                           const SizedBox(height: 22),
@@ -110,46 +133,38 @@ class SecurityView extends ConsumerWidget {
                             children: [
                               const Expanded(
                                 child: Text(
-                                  'Actions prioritaires',
+                                  'Analyse par mot de passe',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
-                              if (health.issues.isNotEmpty)
-                                Text(
-                                  SecurityAlerts.inboxLabel(health.issues.length),
-                                  style: const TextStyle(
-                                    color: AppColors.danger,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                )
-                              else if (health.urgentCount > 0)
-                                Text(
-                                  '${health.urgentCount} urgence${health.urgentCount > 1 ? 's' : ''}',
-                                  style: const TextStyle(
-                                    color: AppColors.danger,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
+                              Text(
+                                SecurityAlerts.ficheLabel(health.flaggedCount),
+                                style: TextStyle(
+                                  color: health.flaggedCount > 0
+                                      ? AppColors.danger
+                                      : AppColors.success,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                 ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          if (health.issues.isEmpty)
+                          if (health.entries.isEmpty)
                             const SafeVaultCard(
                               borderRadius: 18,
                               padding: EdgeInsets.all(16),
                               child: Text(
-                                'Rien à corriger pour le moment.',
+                                'Rien à analyser pour le moment.',
                                 style: TextStyle(color: AppColors.muted),
                               ),
                             )
                           else
-                            for (final issue in health.issues) ...[
-                              _IssueTile(issue: issue),
+                            for (final entry in health.entries) ...[
+                              _EntryHealthTile(report: entry),
                               const SizedBox(height: 10),
                             ],
                           const SizedBox(height: 8),
@@ -350,82 +365,129 @@ class _TipCard extends StatelessWidget {
   }
 }
 
-class _IssueTile extends StatelessWidget {
-  const _IssueTile({required this.issue});
+class _EntryHealthTile extends StatelessWidget {
+  const _EntryHealthTile({required this.report});
 
-  final VaultIssue issue;
+  final EntryHealthReport report;
 
   @override
   Widget build(BuildContext context) {
-    final letter = issue.serviceName.isEmpty
+    final letter = report.serviceName.isEmpty
         ? '?'
-        : issue.serviceName.substring(0, 1).toUpperCase();
-    final action = issue.kind == VaultIssueKind.stale
-        ? 'Mettre à jour'
-        : 'Modifier';
+        : report.serviceName.substring(0, 1).toUpperCase();
     return SafeVaultCard(
       borderRadius: 18,
       padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.iconWell,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.cardBorder),
-            ),
-            child: Text(
-              letter,
-              style: const TextStyle(
-                color: AppColors.cyan,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  issue.serviceName,
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.iconWell,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: Text(
+                  letter,
                   style: const TextStyle(
+                    color: AppColors.cyan,
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  issue.message,
-                  style: TextStyle(
-                    color: issue.kind == VaultIssueKind.stale
-                        ? AppColors.warning
-                        : AppColors.danger,
-                    fontSize: 13,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      report.serviceName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      report.hasIssue
+                          ? '${report.issues.length} signal${report.issues.length > 1 ? 's' : ''}'
+                          : 'Aucun signal',
+                      style: TextStyle(
+                        color: report.hasIssue
+                            ? AppColors.danger
+                            : AppColors.success,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              HealthScoreRing(score: report.score, size: 48, strokeWidth: 4),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => context.go('/entry/${report.entryId}'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: report.hasIssue
+                      ? AppColors.cyan
+                      : AppColors.iconWell,
+                  foregroundColor: report.hasIssue
+                      ? const Color(0xFF041018)
+                      : Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  minimumSize: const Size(0, 40),
+                ),
+                child: Text(report.hasIssue ? 'Corriger' : 'Voir'),
+              ),
+            ],
+          ),
+          if (report.issues.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final issue in report.issues)
+                  _IssueChip(kind: issue.kind, label: issue.message),
               ],
             ),
-          ),
-          FilledButton(
-            onPressed: () => context.go('/entry/${issue.entryId}'),
-            style: FilledButton.styleFrom(
-              backgroundColor: issue.kind == VaultIssueKind.stale
-                  ? AppColors.iconWell
-                  : AppColors.cyan,
-              foregroundColor: issue.kind == VaultIssueKind.stale
-                  ? Colors.white
-                  : const Color(0xFF041018),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              minimumSize: const Size(0, 40),
-            ),
-            child: Text(action),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _IssueChip extends StatelessWidget {
+  const _IssueChip({required this.kind, required this.label});
+
+  final VaultIssueKind kind;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = kind == VaultIssueKind.stale
+        ? AppColors.warning
+        : AppColors.danger;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -453,7 +515,7 @@ class _LocalAnalysisCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Les mots de passe ne quittent pas l’appareil.',
+                  'Le hash est calculé ici. Seuls 5 caractères partent vers Have I Been Pwned.',
                   style: TextStyle(color: AppColors.muted, fontSize: 13),
                 ),
               ],
