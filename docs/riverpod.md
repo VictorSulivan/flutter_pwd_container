@@ -83,6 +83,8 @@ Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : 
 
 `pwnedPasswordsLookupProvider` / `pwnedHitsProvider` : k-anonymity sur le téléphone.
 
+`vaultAiFactsProvider` / `vaultAiBriefingProvider` : compteurs anonymisés + briefing. Jamais le secret.
+
 `securityAlertsProvider` / `securityNotificationPortProvider` : bandeau in-app + notif système après unlock/sauvegarde.
 
 Détail du stockage : [`vault.md`](vault.md). Santé : [`security.md`](security.md).
@@ -97,4 +99,4 @@ Détail du stockage : [`vault.md`](vault.md). Santé : [`security.md`](security.
 
 ## Ce qui viendra
 
-Biométrie, puis un assistant IA sur **métadonnées** seulement. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.
+Biométrie. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.

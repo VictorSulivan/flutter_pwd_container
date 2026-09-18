@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
+import '../router/app_navigator.dart';
 import '../services/password_health.dart';
 import '../theme/app_theme.dart';
 import 'widgets/copy_secret.dart';
@@ -41,7 +41,7 @@ class _GeneratorViewState extends State<GeneratorView> {
                     children: [
                       IconButton(
                         tooltip: 'Retour',
-                        onPressed: () => context.go('/'),
+                        onPressed: () => popToPrevious(context),
                         icon: const Icon(Icons.arrow_back),
                       ),
                       const Expanded(

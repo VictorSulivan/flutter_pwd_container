@@ -88,7 +88,7 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 
 **Décision :** complexité, doublons (SHA-256) et âge sont calculés en RAM après `unlock`. Firestore ne reçoit pas d’empreinte ni de score.
 
-**Pourquoi :** une copie cloud des hashs aiderait un attaquant qui a déjà l’enveloppe. L’UI « conseil » est un texte local ; l’IA prévue plus tard ne verra que des métadonnées (longueur, doublon oui/non, âge).
+**Pourquoi :** une copie cloud des hashs aiderait un attaquant qui a déjà l’enveloppe. L’UI « conseil » est un texte local ; l’assistant IA ne voit que des métadonnées (longueur, doublon oui/non, âge, fuites).
 
 ## D14 — Alertes locales, pas de push cloud
 
@@ -103,3 +103,11 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 **Pourquoi :** l’API Pwned Passwords est gratuite et conçue pour ça. L’API e-mail HIBP (payante) n’est pas utilisée.
 
 **Revoir si :** usage hors-ligne strict (télécharger le corpus complet).
+
+## D16 — Assistant IA on-device, métadonnées seulement
+
+**Décision :** pas de LLM cloud, pas de modèle à télécharger. Briefing, questions et plan sont calculés sur le téléphone à partir de compteurs, **sans réseau**. Pages dédiées (`/assistant`, `/assistant/plan`, `/assistant/fiche/:id`) plutôt que d’empiler le récit sur `/security`. Have I Been Pwned reste optionnel : hors ligne, l’assistant ne prétend pas « aucune fuite ».
+
+**Pourquoi :** un modèle cloud créerait un historique chez un tiers. Un LLM embarqué (Gemma, 0,5–2 Go) n’est pas tenable sur tous les téléphones. Les phrases locales respectent le contrat zero-knowledge de `project.md`. Un secret collé dans la question n’est pas analysé.
+
+**Revoir si :** un petit modèle on-device devient raisonnable en taille et en RAM.

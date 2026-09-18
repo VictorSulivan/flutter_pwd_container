@@ -7,10 +7,14 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/auth_providers.dart';
 import '../providers/vault_providers.dart';
+import '../views/assistant_entry_view.dart';
+import '../views/assistant_plan_view.dart';
+import '../views/assistant_view.dart';
 import '../views/entry_view.dart';
 import '../views/generator_view.dart';
 import '../views/home_view.dart';
 import '../views/login_view.dart';
+import '../views/security_passwords_view.dart';
 import '../views/security_view.dart';
 import '../views/unlock_view.dart';
 import 'app_navigator.dart';
@@ -21,6 +25,9 @@ abstract final class AppRoutes {
   static const unlock = '/unlock';
   static const generator = '/generator';
   static const security = '/security';
+  static const securityPasswords = '/security/passwords';
+  static const assistant = '/assistant';
+  static const assistantPlan = '/assistant/plan';
   static const entryNew = '/entry/new';
 }
 
@@ -79,6 +86,24 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
       GoRoute(
         path: AppRoutes.security,
         builder: (context, state) => const SecurityView(),
+      ),
+      GoRoute(
+        path: AppRoutes.securityPasswords,
+        builder: (context, state) => const SecurityPasswordsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.assistant,
+        builder: (context, state) => const AssistantView(),
+      ),
+      GoRoute(
+        path: AppRoutes.assistantPlan,
+        builder: (context, state) => const AssistantPlanView(),
+      ),
+      GoRoute(
+        path: '/assistant/fiche/:id',
+        builder: (context, state) => AssistantEntryView(
+          entryId: state.pathParameters['id'] ?? '',
+        ),
       ),
       GoRoute(
         path: AppRoutes.entryNew,

@@ -5,13 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class PwnedPasswordHit {
-  const PwnedPasswordHit({required this.count});
+  const PwnedPasswordHit({required this.count, this.checked = true});
 
-  const PwnedPasswordHit.clean() : count = 0;
+  const PwnedPasswordHit.clean() : count = 0, checked = true;
+
+  /// Réseau absent : on n’invente pas une fuite, on ne conclut pas non plus « propre ».
+  const PwnedPasswordHit.unavailable() : count = 0, checked = false;
 
   final int count;
+  final bool checked;
 
-  bool get pwned => count > 0;
+  bool get pwned => checked && count > 0;
 }
 
 abstract class PwnedPasswordsLookup {
@@ -92,7 +96,7 @@ class HibpPwnedPasswords extends PwnedPasswordsLookup {
       return const PwnedPasswordHit.clean();
     } on Object catch (error) {
       debugPrint('HIBP range: $error');
-      return const PwnedPasswordHit.clean();
+      return const PwnedPasswordHit.unavailable();
     }
   }
 

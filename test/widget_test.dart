@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pwd_container/src/models/vault_entry.dart';
 import 'package:flutter_pwd_container/src/providers/vault_providers.dart';
 import 'package:flutter_pwd_container/src/services/pwned_passwords.dart';
+import 'package:flutter_pwd_container/src/views/assistant_view.dart';
 import 'package:flutter_pwd_container/src/views/entry_view.dart';
 import 'package:flutter_pwd_container/src/views/generator_view.dart';
 import 'package:flutter_pwd_container/src/views/home_view.dart';
 import 'package:flutter_pwd_container/src/views/login_view.dart';
+import 'package:flutter_pwd_container/src/views/security_passwords_view.dart';
 import 'package:flutter_pwd_container/src/views/security_view.dart';
 import 'package:flutter_pwd_container/src/views/unlock_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,11 +78,40 @@ void main() {
 
     expect(find.text('Aucune fiche'), findsOneWidget);
     expect(find.byTooltip('Ajouter une fiche'), findsOneWidget);
-    expect(find.text('Générer'), findsOneWidget);
+    expect(find.text('Générer'), findsNothing);
     expect(find.text('Synchroniser'), findsOneWidget);
     expect(find.byTooltip('Santé du coffre'), findsOneWidget);
+    expect(find.byTooltip('Assistant IA'), findsOneWidget);
+    expect(find.byTooltip('Plus'), findsOneWidget);
     expect(find.text('Voir les conseils'), findsNothing);
     expect(find.text('Ouvrir le générateur'), findsNothing);
+
+    await tester.tap(find.byTooltip('Plus'));
+    await tester.pumpAndSettle();
+    expect(find.text('Générer'), findsOneWidget);
+    expect(find.text('Verrouiller'), findsOneWidget);
+    expect(find.text('Déconnexion'), findsOneWidget);
+  });
+
+  testWidgets('le header du coffre tient sur un écran étroit', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          vaultEntriesProvider.overrideWith(_EmptyEntries.new),
+          ..._pwnedOverride,
+        ],
+        child: const MaterialApp(home: HomeView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byTooltip('Plus'), findsOneWidget);
   });
 
   testWidgets('affiche une fiche existante', (tester) async {
@@ -97,9 +128,11 @@ void main() {
 
     expect(find.text('GitHub'), findsOneWidget);
     expect(find.text('orion'), findsOneWidget);
-    expect(find.text('Générer'), findsOneWidget);
     expect(find.text('Synchroniser'), findsOneWidget);
     expect(find.byTooltip('Santé du coffre'), findsOneWidget);
+    expect(find.byTooltip('Assistant IA'), findsOneWidget);
+    expect(find.byTooltip('Plus'), findsOneWidget);
+    expect(find.text('Générer'), findsNothing);
     expect(find.text('Voir les conseils'), findsNothing);
     expect(find.text('1 alerte de sécurité'), findsNothing);
     expect(find.text('Générateur'), findsNothing);
@@ -148,12 +181,56 @@ void main() {
       200,
     );
     expect(find.text('Analyse par mot de passe'), findsOneWidget);
-    expect(find.text('Rien à analyser pour le moment.'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Assistant IA'),
+      200,
+    );
+    expect(find.text('Assistant IA'), findsOneWidget);
+    expect(find.text('Rien à analyser pour le moment.'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('Analyse locale activée'),
       200,
     );
     expect(find.text('Analyse locale activée'), findsOneWidget);
+  });
+
+  testWidgets('affiche l’analyse par mot de passe à part', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          vaultEntriesProvider.overrideWith(_EmptyEntries.new),
+          ..._pwnedOverride,
+        ],
+        child: const MaterialApp(home: SecurityPasswordsView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Analyse par mot de passe'), findsOneWidget);
+    expect(find.text('Rien à analyser pour le moment.'), findsOneWidget);
+  });
+
+  testWidgets('affiche l’assistant local d’un coffre vide', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          vaultEntriesProvider.overrideWith(_EmptyEntries.new),
+          ..._pwnedOverride,
+        ],
+        child: const MaterialApp(home: AssistantView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Briefing du coffre'), findsOneWidget);
+    expect(find.text('Rien à analyser pour l’instant'), findsOneWidget);
+    expect(find.textContaining('Aucun Wi‑Fi ni 4G requis'), findsOneWidget);
+    expect(find.text('Voir le plan d’action'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Que vois-tu exactement ?'),
+      200,
+    );
+    expect(find.text('Que vois-tu exactement ?'), findsOneWidget);
   });
 }
 

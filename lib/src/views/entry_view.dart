@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/vault_entry.dart';
 import '../providers/vault_providers.dart';
+import '../router/app_navigator.dart';
 import '../services/password_health.dart';
 import '../services/pwned_passwords.dart';
 import '../services/security_alerts.dart';
@@ -158,7 +159,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
       if (!mounted) {
         return;
       }
-      context.go('/');
+      popToPrevious(context);
     } on Object catch (error) {
       if (!mounted) {
         return;
@@ -206,7 +207,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
     if (!mounted) {
       return;
     }
-    context.go('/');
+    popToPrevious(context);
   }
 
   void _schedulePwnedCheck(String password) {
@@ -266,7 +267,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
                     children: [
                       IconButton(
                         tooltip: 'Retour',
-                        onPressed: () => context.go('/'),
+                        onPressed: () => popToPrevious(context),
                         icon: const Icon(Icons.arrow_back),
                       ),
                       const Expanded(child: SafeVaultHeader()),
@@ -508,6 +509,19 @@ class _LiveEntryHealth extends StatelessWidget {
                     height: 1.35,
                   ),
                 ),
+                if (report.entryId != 'draft') ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () =>
+                        context.push('/assistant/fiche/${report.entryId}'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('Conseil de l’assistant'),
+                  ),
+                ],
               ],
             ),
           ),

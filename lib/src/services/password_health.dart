@@ -52,6 +52,8 @@ class EntryHealthReport {
     required this.duplicate,
     required this.pwned,
     required this.pwnedAppearances,
+    required this.passwordLength,
+    required this.characterClasses,
     required this.age,
     required this.issues,
   });
@@ -66,6 +68,8 @@ class EntryHealthReport {
   final bool duplicate;
   final bool pwned;
   final int pwnedAppearances;
+  final int passwordLength;
+  final int characterClasses;
   final Duration age;
   final List<VaultIssue> issues;
 
@@ -365,6 +369,8 @@ class PasswordHealthAnalyzer {
       duplicate: duplicated,
       pwned: leaked,
       pwnedAppearances: pwnedAppearances,
+      passwordLength: entry.password.length,
+      characterClasses: characterClassesOf(entry.password),
       age: age,
       issues: issues,
     );
@@ -468,6 +474,23 @@ class PasswordHealthAnalyzer {
       fingerprint: fingerprint,
       reasons: reasons,
     );
+  }
+
+  static int characterClassesOf(String password) {
+    var classes = 0;
+    if (password.contains(RegExp(r'[a-z]'))) {
+      classes++;
+    }
+    if (password.contains(RegExp(r'[A-Z]'))) {
+      classes++;
+    }
+    if (password.contains(RegExp(r'[0-9]'))) {
+      classes++;
+    }
+    if (password.contains(RegExp(r'[^A-Za-z0-9]'))) {
+      classes++;
+    }
+    return classes;
   }
 
   static int _lengthPoints(int length) {

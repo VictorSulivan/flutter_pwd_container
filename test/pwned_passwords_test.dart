@@ -37,6 +37,7 @@ void main() {
     );
     final hit = await lookup.check('password');
     expect(hit.pwned, isFalse);
+    expect(hit.checked, isFalse);
   });
 
   test('n’envoie jamais le secret, seulement un préfixe', () async {

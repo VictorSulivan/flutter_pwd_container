@@ -38,27 +38,31 @@ class SafeVaultHeader extends StatelessWidget {
       children: [
         const _HeaderBadge(),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'SAFEVAULT',
-              style: TextStyle(
-                color: AppColors.cyan,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.6,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'SAFEVAULT',
+                style: TextStyle(
+                  color: AppColors.cyan,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
+                ),
               ),
-            ),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                height: 1.1,
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  height: 1.1,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

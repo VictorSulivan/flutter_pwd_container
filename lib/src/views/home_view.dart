@@ -84,7 +84,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
         tooltip: 'Ajouter une fiche',
         backgroundColor: AppColors.cyan,
         foregroundColor: const Color(0xFF041018),
-        onPressed: () => context.go('/entry/new'),
+                        onPressed: () => context.push('/entry/new'),
         child: const Icon(Icons.add),
       ),
       body: Stack(
@@ -94,18 +94,14 @@ class _HomeViewState extends ConsumerState<HomeView> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 4, 0),
                   child: Row(
                     children: [
                       const Expanded(child: SafeVaultHeader()),
-                      TextButton.icon(
-                        onPressed: () => context.go('/generator'),
-                        icon: const Icon(Icons.casino_outlined),
-                        label: const Text('Générer'),
-                      ),
                       IconButton(
                         tooltip: 'Santé du coffre',
-                        onPressed: () => context.go('/security'),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => context.push('/security'),
                         icon: Badge(
                           isLabelVisible: health.flaggedCount > 0,
                           label: Text('${health.flaggedCount}'),
@@ -113,18 +109,38 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Verrouiller le coffre',
-                        onPressed: () {
-                          ref.read(vaultEntriesProvider.notifier).lock();
-                          context.go('/unlock');
-                        },
-                        icon: const Icon(Icons.lock_outline),
+                        tooltip: 'Assistant IA',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => context.push('/assistant'),
+                        icon: const Icon(Icons.auto_awesome),
                       ),
-                      IconButton(
-                        tooltip: 'Déconnexion',
-                        onPressed: () =>
-                            ref.read(authRepositoryProvider).signOut(),
-                        icon: const Icon(Icons.logout),
+                      PopupMenuButton<_HomeMenuAction>(
+                        tooltip: 'Plus',
+                        onSelected: (action) {
+                          switch (action) {
+                            case _HomeMenuAction.generate:
+                              context.push('/generator');
+                            case _HomeMenuAction.lock:
+                              ref.read(vaultEntriesProvider.notifier).lock();
+                              context.go('/unlock');
+                            case _HomeMenuAction.signOut:
+                              ref.read(authRepositoryProvider).signOut();
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: _HomeMenuAction.generate,
+                            child: Text('Générer'),
+                          ),
+                          PopupMenuItem(
+                            value: _HomeMenuAction.lock,
+                            child: Text('Verrouiller'),
+                          ),
+                          PopupMenuItem(
+                            value: _HomeMenuAction.signOut,
+                            child: Text('Déconnexion'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -318,7 +334,7 @@ class _EntryTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => context.go('/entry/${entry.id}'),
+        onTap: () => context.push('/entry/${entry.id}'),
         child: SafeVaultCard(
           borderRadius: 18,
           padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
@@ -379,3 +395,5 @@ class _EntryTile extends StatelessWidget {
     );
   }
 }
+
+enum _HomeMenuAction { generate, lock, signOut }

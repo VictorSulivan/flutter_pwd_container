@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/vault_providers.dart';
+import '../router/app_navigator.dart';
 import '../services/password_health.dart';
 import '../services/security_alerts.dart';
 import '../theme/app_theme.dart';
@@ -29,7 +30,7 @@ class SecurityView extends ConsumerWidget {
                     children: [
                       IconButton(
                         tooltip: 'Retour',
-                        onPressed: () => context.go('/'),
+                        onPressed: () => popToPrevious(context),
                         icon: const Icon(Icons.arrow_back),
                       ),
                       const Expanded(
@@ -128,46 +129,24 @@ class SecurityView extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           _TipCard(tip: health.tip),
-                          const SizedBox(height: 22),
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Analyse par mot de passe',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                SecurityAlerts.ficheLabel(health.flaggedCount),
-                                style: TextStyle(
-                                  color: health.flaggedCount > 0
-                                      ? AppColors.danger
-                                      : AppColors.success,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 12),
+                          _LinkCard(
+                            icon: Icons.password_outlined,
+                            title: 'Analyse par mot de passe',
+                            subtitle: health.entries.isEmpty
+                                ? 'Aucune fiche à détailler pour le moment.'
+                                : '${health.entries.length} fiche${health.entries.length > 1 ? 's' : ''} · ${SecurityAlerts.ficheLabel(health.flaggedCount)}',
+                            onTap: () => context.push('/security/passwords'),
+                          ),
+                          const SizedBox(height: 10),
+                          _LinkCard(
+                            icon: Icons.auto_awesome,
+                            title: 'Assistant IA',
+                            subtitle:
+                                'Briefing en langage naturel, compteurs seulement.',
+                            onTap: () => context.push('/assistant'),
                           ),
                           const SizedBox(height: 12),
-                          if (health.entries.isEmpty)
-                            const SafeVaultCard(
-                              borderRadius: 18,
-                              padding: EdgeInsets.all(16),
-                              child: Text(
-                                'Rien à analyser pour le moment.',
-                                style: TextStyle(color: AppColors.muted),
-                              ),
-                            )
-                          else
-                            for (final entry in health.entries) ...[
-                              _EntryHealthTile(report: entry),
-                              const SizedBox(height: 10),
-                            ],
-                          const SizedBox(height: 8),
                           const _LocalAnalysisCard(),
                         ],
                       );
@@ -330,7 +309,7 @@ class _TipCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
-              Icons.auto_awesome,
+              Icons.lightbulb_outline,
               color: Color(0xFFB79CFF),
               size: 18,
             ),
@@ -365,41 +344,39 @@ class _TipCard extends StatelessWidget {
   }
 }
 
-class _EntryHealthTile extends StatelessWidget {
-  const _EntryHealthTile({required this.report});
+class _LinkCard extends StatelessWidget {
+  const _LinkCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
-  final EntryHealthReport report;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final letter = report.serviceName.isEmpty
-        ? '?'
-        : report.serviceName.substring(0, 1).toUpperCase();
-    return SafeVaultCard(
-      borderRadius: 18,
-      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: SafeVaultCard(
+          borderRadius: 18,
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+          child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.iconWell,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.cardBorder),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  letter,
-                  style: const TextStyle(
-                    color: AppColors.cyan,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                ),
+                child: Icon(icon, color: AppColors.cyan, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -407,7 +384,7 @@ class _EntryHealthTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      report.serviceName,
+                      title,
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
@@ -415,78 +392,19 @@ class _EntryHealthTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      report.hasIssue
-                          ? '${report.issues.length} signal${report.issues.length > 1 ? 's' : ''}'
-                          : 'Aucun signal',
-                      style: TextStyle(
-                        color: report.hasIssue
-                            ? AppColors.danger
-                            : AppColors.success,
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.muted,
                         fontSize: 13,
+                        height: 1.3,
                       ),
                     ),
                   ],
                 ),
               ),
-              HealthScoreRing(score: report.score, size: 48, strokeWidth: 4),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () => context.go('/entry/${report.entryId}'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: report.hasIssue
-                      ? AppColors.cyan
-                      : AppColors.iconWell,
-                  foregroundColor: report.hasIssue
-                      ? const Color(0xFF041018)
-                      : Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  minimumSize: const Size(0, 40),
-                ),
-                child: Text(report.hasIssue ? 'Corriger' : 'Voir'),
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.muted),
             ],
           ),
-          if (report.issues.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final issue in report.issues)
-                  _IssueChip(kind: issue.kind, label: issue.message),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _IssueChip extends StatelessWidget {
-  const _IssueChip({required this.kind, required this.label});
-
-  final VaultIssueKind kind;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = kind == VaultIssueKind.stale
-        ? AppColors.warning
-        : AppColors.danger;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

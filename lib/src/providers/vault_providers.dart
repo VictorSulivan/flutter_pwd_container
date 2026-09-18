@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/vault_entry.dart';
 import '../services/password_health.dart';
 import '../services/pwned_passwords.dart';
+import '../services/security_ai_advisor.dart';
 import '../services/security_alerts.dart';
 import '../services/security_notifications.dart';
 import '../services/vault_envelope.dart';
@@ -60,7 +61,8 @@ final vaultHealthProvider = Provider<VaultHealthReport>((ref) {
   return PasswordHealthAnalyzer().analyze(
     entries,
     pwnedCounts: {
-      for (final entry in hits.entries) entry.key: entry.value.count,
+      for (final entry in hits.entries)
+        if (entry.value.checked) entry.key: entry.value.count,
     },
   );
 });
@@ -89,6 +91,36 @@ final pwnedHitsProvider =
         for (final entry in entries) (id: entry.id, password: entry.password),
       ]);
     });
+
+final vaultAiFactsProvider = Provider<VaultAiFacts>((ref) {
+  final health = ref.watch(vaultHealthProvider);
+  final hits = ref.watch(pwnedHitsProvider);
+  return VaultAiFacts.fromHealth(
+    health,
+    leaksChecked: _leaksWereChecked(health, hits),
+  );
+});
+
+final vaultAiBriefingProvider = Provider<AiBriefing>((ref) {
+  return SecurityAiAdvisor().brief(ref.watch(vaultAiFactsProvider));
+});
+
+bool _leaksWereChecked(
+  VaultHealthReport health,
+  AsyncValue<Map<String, PwnedPasswordHit>> hits,
+) {
+  if (health.entries.isEmpty) {
+    return true;
+  }
+  if (!hits.hasValue) {
+    return false;
+  }
+  final value = hits.requireValue;
+  if (value.length < health.entries.length) {
+    return false;
+  }
+  return value.values.every((hit) => hit.checked);
+}
 
 class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
   @override

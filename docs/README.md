@@ -12,6 +12,7 @@ Le cahier des charges produit est dans [`../project.md`](../project.md). Ici on 
 | [vault.md](vault.md) | Coffre AES-256-GCM, PBKDF2, isolation par uid |
 | [firebase-sync.md](firebase-sync.md) | Config console Firestore (règles, document prévu) |
 | [generator.md](generator.md) | Générateur local, hors Firebase |
-| [security.md](security.md) | Santé du coffre : force, doublons, âge |
+| [security.md](security.md) | Santé du coffre : force, doublons, âge, fuites |
+| [assistant.md](assistant.md) | Assistant IA local, métadonnées seulement |
 | [decisions.md](decisions.md) | Décisions figées (pourquoi X plutôt que Y) |
 | [roadmap.md](roadmap.md) | Fait / pas encore fait, ordre des prochaines étapes |
