@@ -16,7 +16,7 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 10. **Santé du coffre** — complexité, doublons (SHA-256), obsolescence 90 j, écran `/security`.
 11. **Alertes** — in-app + notification locale (compteurs), à l’unlock et à l’enregistrement.
 12. **Fuites HIBP** — Pwned Passwords k-anonymity, hash et comparaison sur le téléphone.
-13. **Assistant IA local** — briefing + plan d’action, compteurs seulement, pages dédiées.
+13. **Assistant IA on-device** — Qwen3 0.6B (LiteRT-LM), briefing + questions, plan Dart, compteurs seulement.
 
 ## Suivant
 

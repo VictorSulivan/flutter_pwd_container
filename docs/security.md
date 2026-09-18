@@ -24,7 +24,7 @@ Le SHA-1 est calculé **en local**. Seuls les **5 premiers caractères** du hash
 - Un seul accès depuis la liste : icône bouclier (badge = nombre d’alertes)
 - Écran [`/security`](../lib/src/views/security_view.dart) : score du coffre, compteurs qui se recoupent
 - Écran [`/security/passwords`](../lib/src/views/security_passwords_view.dart) : une fiche = un score, sans afficher le secret
-- Assistant [`/assistant`](assistant.md) : briefing en langage naturel (compteurs seulement)
+- Assistant [`/assistant`](assistant.md) : LLM on-device (Qwen3), compteurs seulement
 - À la saisie d’une fiche : score individuel + tous les signaux (fragile, doublon, fuite, âge)
 - Le générateur réutilise le même score de force
 
@@ -38,4 +38,4 @@ Notifications **système** uniquement :
 Look : marque SafeVault, accent `#3DDCFF`, texte long, bouton **Voir** → `/security`.
 Pas de notif en naviguant. Pas de secret dans le tiroir.
 
-Le « conseil » de l’écran sécurité est un texte local. L’assistant IA ([`assistant.md`](assistant.md)) produit le briefing en langage naturel, toujours sur des métadonnées, jamais sur le secret.
+Le « conseil » de l’écran sécurité est un texte local. L’assistant IA ([`assistant.md`](assistant.md)) rédige le briefing avec un LLM on-device, toujours sur des métadonnées, jamais sur le secret.

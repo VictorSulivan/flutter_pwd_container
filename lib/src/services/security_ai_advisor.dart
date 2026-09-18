@@ -181,8 +181,9 @@ class AiAnswer {
   final String body;
 }
 
-/// Assistant **on-device** : langage naturel à partir de compteurs.
-/// Les mots de passe ne sont jamais lus par cet assistant.
+/// Compteurs et plan d’action **on-device**.
+/// Le briefing en langage naturel passe par le LLM local (`VaultAiAssistant`).
+/// Les mots de passe ne sont jamais lus ici.
 class SecurityAiAdvisor {
   static const suggestedQuestions = [
     'Par où commencer ?',
@@ -192,10 +193,10 @@ class SecurityAiAdvisor {
   ];
 
   static const privacyNote =
-      'Je tourne sur le téléphone, sans Wi‑Fi ni 4G. '
-      'Score, doublons, âge et conseils sont calculés ici. '
-      'Seule la recherche de fuites (Have I Been Pwned) utilise Internet, '
-      'et je m’en passe si tu es hors ligne.';
+      'Après un téléchargement unique (~330 Mo), le modèle Qwen3 tourne sur le téléphone. '
+      'L’inférence n’a pas besoin de Wi‑Fi ni de 4G. '
+      'Je ne vois que des compteurs : aucun mot de passe, identifiant ni URL. '
+      'Have I Been Pwned reste optionnel pour les fuites.';
 
   AiBriefing brief(VaultAiFacts facts) {
     if (facts.entryCount == 0) {
@@ -335,7 +336,7 @@ class SecurityAiAdvisor {
         body: 'Pose une question sur le coffre, sans coller de mot de passe.',
       );
     }
-    if (_looksLikeSecret(trimmed)) {
+    if (looksLikeSecret(trimmed)) {
       return const AiAnswer(
         question: '••••',
         body:
@@ -543,20 +544,21 @@ class SecurityAiAdvisor {
     return needles.any(question.contains);
   }
 
-  bool _looksLikeSecret(String question) {
+  /// Refuse un mot collé qui ressemble à un secret, avant tout appel au modèle.
+  static bool looksLikeSecret(String question) {
     if (question.contains(' ')) {
       return false;
     }
     if (question.length < 8) {
       return false;
     }
-    if (_isVaultQuestion(_normalize(question))) {
+    if (_isVaultQuestion(question.toLowerCase().replaceAll(RegExp(r'\s+'), ' '))) {
       return false;
     }
     return true;
   }
 
-  bool _isVaultQuestion(String question) {
+  static bool _isVaultQuestion(String question) {
     const markers = [
       'fuite',
       'pwned',

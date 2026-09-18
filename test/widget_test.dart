@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pwd_container/src/models/vault_entry.dart';
 import 'package:flutter_pwd_container/src/providers/vault_providers.dart';
+import 'package:flutter_pwd_container/src/services/on_device_llm.dart';
 import 'package:flutter_pwd_container/src/services/pwned_passwords.dart';
 import 'package:flutter_pwd_container/src/views/assistant_view.dart';
 import 'package:flutter_pwd_container/src/views/entry_view.dart';
@@ -224,7 +225,7 @@ void main() {
 
     expect(find.text('Briefing du coffre'), findsOneWidget);
     expect(find.text('Rien à analyser pour l’instant'), findsOneWidget);
-    expect(find.textContaining('Aucun Wi‑Fi ni 4G requis'), findsOneWidget);
+    expect(find.textContaining('Inférence locale'), findsOneWidget);
     expect(find.text('Voir le plan d’action'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Que vois-tu exactement ?'),
@@ -236,6 +237,7 @@ void main() {
 
 final _pwnedOverride = [
   pwnedPasswordsLookupProvider.overrideWithValue(MemoryPwnedPasswords()),
+  onDeviceLlmProvider.overrideWithValue(MemoryOnDeviceLlm()),
 ];
 
 class _EmptyEntries extends VaultEntriesNotifier {

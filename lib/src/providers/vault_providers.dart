@@ -2,10 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/vault_entry.dart';
+import '../services/gemma_on_device_llm.dart';
+import '../services/on_device_llm.dart';
 import '../services/password_health.dart';
 import '../services/pwned_passwords.dart';
 import '../services/security_ai_advisor.dart';
 import '../services/security_alerts.dart';
+import '../services/vault_ai_prompt.dart';
 import '../services/security_notifications.dart';
 import '../services/vault_envelope.dart';
 import '../services/vault_remote.dart';
@@ -101,9 +104,50 @@ final vaultAiFactsProvider = Provider<VaultAiFacts>((ref) {
   );
 });
 
-final vaultAiBriefingProvider = Provider<AiBriefing>((ref) {
-  return SecurityAiAdvisor().brief(ref.watch(vaultAiFactsProvider));
+final onDeviceLlmProvider = Provider<OnDeviceLlm>((ref) {
+  return GemmaOnDeviceLlm();
 });
+
+final vaultAiAssistantProvider = Provider<VaultAiAssistant>((ref) {
+  return VaultAiAssistant(ref.watch(onDeviceLlmProvider));
+});
+
+final llmReadyProvider = FutureProvider<bool>((ref) {
+  return ref.watch(onDeviceLlmProvider).isReady;
+});
+
+final llmInstallProgressProvider =
+    NotifierProvider<LlmInstallProgressNotifier, int?>(
+      LlmInstallProgressNotifier.new,
+    );
+
+class LlmInstallProgressNotifier extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  void setProgress(int? value) => state = value;
+}
+
+final vaultAiBriefingProvider = FutureProvider<AiBriefing>((ref) async {
+  final facts = ref.watch(vaultAiFactsProvider);
+  return ref.watch(vaultAiAssistantProvider).brief(facts);
+});
+
+final entryAiBriefingProvider =
+    FutureProvider.family<AiBriefing, String>((ref, entryId) async {
+      final facts = ref.watch(vaultAiFactsProvider);
+      final entry = facts.entries
+          .where((item) => item.entryId == entryId)
+          .firstOrNull;
+      if (entry == null) {
+        return const AiBriefing(
+          headline: 'Fiche introuvable',
+          body: 'Cette fiche n’est plus dans le coffre ouvert.',
+          nextStep: 'Reviens à la liste.',
+        );
+      }
+      return ref.watch(vaultAiAssistantProvider).briefEntry(entry);
+    });
 
 bool _leaksWereChecked(
   VaultHealthReport health,

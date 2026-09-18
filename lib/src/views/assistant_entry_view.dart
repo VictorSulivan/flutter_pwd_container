@@ -20,6 +20,7 @@ class AssistantEntryView extends ConsumerWidget {
     final entry = facts.entries
         .where((item) => item.entryId == entryId)
         .firstOrNull;
+    final briefing = ref.watch(entryAiBriefingProvider(entryId));
 
     return Scaffold(
       body: Stack(
@@ -57,7 +58,7 @@ class AssistantEntryView extends ConsumerWidget {
                           ),
                         )
                       else
-                        ..._entryBody(context, entry),
+                        ..._entryBody(context, entry, briefing),
                     ],
                   ),
                 ),
@@ -69,8 +70,11 @@ class AssistantEntryView extends ConsumerWidget {
     );
   }
 
-  List<Widget> _entryBody(BuildContext context, EntryAiFacts entry) {
-    final briefing = SecurityAiAdvisor().briefEntry(entry);
+  List<Widget> _entryBody(
+    BuildContext context,
+    EntryAiFacts entry,
+    AsyncValue<AiBriefing> briefing,
+  ) {
     return [
       Text(
         entry.serviceName,
@@ -82,7 +86,7 @@ class AssistantEntryView extends ConsumerWidget {
       ),
       const SizedBox(height: 4),
       const Text(
-        'Conseil calculé sur la longueur, les types de caractères, l’âge et les signaux. '
+        'Conseil du modèle local sur la longueur, les types de caractères, l’âge et les signaux. '
         'Le mot de passe n’est pas lu.',
         style: TextStyle(
           color: AppColors.muted,
@@ -91,63 +95,34 @@ class AssistantEntryView extends ConsumerWidget {
         ),
       ),
       const SizedBox(height: 18),
-      SafeVaultCard(
-        borderRadius: 22,
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            HealthScoreRing(score: entry.score, size: 72, strokeWidth: 6),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    briefing.headline,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      height: 1.25,
-                    ),
+      ...briefing.when(
+        loading: () => const [
+          SafeVaultCard(
+            borderRadius: 22,
+            padding: EdgeInsets.fromLTRB(20, 28, 20, 28),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'Le modèle local rédige le conseil…',
+                    style: TextStyle(color: AppColors.muted, height: 1.35),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${entry.passwordLength} caractères · '
-                    '${entry.characterClasses} types · '
-                    '${entry.ageDays} j',
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-      SafeVaultCard(
-        borderRadius: 18,
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          briefing.body,
-          style: const TextStyle(fontSize: 14, height: 1.4),
-        ),
-      ),
-      const SizedBox(height: 12),
-      SafeVaultCard(
-        borderRadius: 18,
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          briefing.nextStep,
-          style: const TextStyle(
-            color: AppColors.cyan,
-            fontWeight: FontWeight.w600,
-            height: 1.35,
           ),
+        ],
+        error: (_, _) => _adviceCards(
+          entry,
+          SecurityAiAdvisor().briefEntry(entry),
         ),
+        data: (value) => _adviceCards(entry, value),
       ),
       const SizedBox(height: 20),
       SafeVaultPrimaryButton(
@@ -168,4 +143,67 @@ class AssistantEntryView extends ConsumerWidget {
       ),
     ];
   }
+}
+
+List<Widget> _adviceCards(EntryAiFacts entry, AiBriefing briefing) {
+  return [
+    SafeVaultCard(
+      borderRadius: 22,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          HealthScoreRing(score: entry.score, size: 72, strokeWidth: 6),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  briefing.headline,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${entry.passwordLength} caractères · '
+                  '${entry.characterClasses} types · '
+                  '${entry.ageDays} j',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+    const SizedBox(height: 12),
+    SafeVaultCard(
+      borderRadius: 18,
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        briefing.body,
+        style: const TextStyle(fontSize: 14, height: 1.4),
+      ),
+    ),
+    const SizedBox(height: 12),
+    SafeVaultCard(
+      borderRadius: 18,
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        briefing.nextStep,
+        style: const TextStyle(
+          color: AppColors.cyan,
+          fontWeight: FontWeight.w600,
+          height: 1.35,
+        ),
+      ),
+    ),
+  ];
 }

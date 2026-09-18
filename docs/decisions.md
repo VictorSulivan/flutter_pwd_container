@@ -106,8 +106,8 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 
 ## D16 — Assistant IA on-device, métadonnées seulement
 
-**Décision :** pas de LLM cloud, pas de modèle à télécharger. Briefing, questions et plan sont calculés sur le téléphone à partir de compteurs, **sans réseau**. Pages dédiées (`/assistant`, `/assistant/plan`, `/assistant/fiche/:id`) plutôt que d’empiler le récit sur `/security`. Have I Been Pwned reste optionnel : hors ligne, l’assistant ne prétend pas « aucune fuite ».
+**Décision :** briefing et Q&A via un **LLM on-device** (Qwen3 0.6B INT4, LiteRT-LM, `flutter_gemma`). Téléchargement unique ~330 Mo, ensuite inférence CPU hors ligne. Le modèle ne reçoit que `toModelPayload()`. Le **plan d’action** reste en Dart (IDs de fiches). Pas de LLM cloud. Pages dédiées (`/assistant`, `/assistant/plan`, `/assistant/fiche/:id`). Have I Been Pwned reste optionnel : hors ligne, l’assistant ne prétend pas « aucune fuite ». Un secret collé n’est pas envoyé au modèle. `MemoryOnDeviceLlm` remplace le moteur natif dans `flutter test`.
 
-**Pourquoi :** un modèle cloud créerait un historique chez un tiers. Un LLM embarqué (Gemma, 0,5–2 Go) n’est pas tenable sur tous les téléphones. Les phrases locales respectent le contrat zero-knowledge de `project.md`. Un secret collé dans la question n’est pas analysé.
+**Pourquoi :** un modèle cloud créerait un historique chez un tiers. Un INT4 public (~330 Mo, sans jeton Hugging Face) tient sur le téléphone. Les phrases Dart restent le repli si l’inférence échoue.
 
-**Revoir si :** un petit modèle on-device devient raisonnable en taille et en RAM.
+**Revoir si :** un modèle plus grand tient en RAM, ou si LiteRT-LM GPU devient fiable sur tous les appareils. Détail : [`assistant.md`](assistant.md).

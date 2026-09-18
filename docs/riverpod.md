@@ -83,7 +83,13 @@ Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : 
 
 `pwnedPasswordsLookupProvider` / `pwnedHitsProvider` : k-anonymity sur le téléphone.
 
-`vaultAiFactsProvider` / `vaultAiBriefingProvider` : compteurs anonymisés + briefing. Jamais le secret.
+`vaultAiFactsProvider` : compteurs anonymisés (`toModelPayload()`). Jamais le secret.
+
+`onDeviceLlmProvider` : `GemmaOnDeviceLlm` (prod). Tests : `MemoryOnDeviceLlm`.
+
+`llmReadyProvider` / `llmInstallProgressProvider` : modèle installé ou non, barre de téléchargement.
+
+`vaultAiAssistantProvider` / `vaultAiBriefingProvider` / `entryAiBriefingProvider` : briefing et conseil fiche via le LLM, repli Dart. Détail : [`assistant.md`](assistant.md).
 
 `securityAlertsProvider` / `securityNotificationPortProvider` : bandeau in-app + notif système après unlock/sauvegarde.
 
