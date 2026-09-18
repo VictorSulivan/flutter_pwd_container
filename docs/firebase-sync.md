@@ -19,11 +19,14 @@ Projet : **flutter-pwd-container**.
 
 ## Règles
 
-1. [Règles](https://console.firebase.google.com/project/flutter-pwd-container/firestore/rules)
-2. Coller [`firestore.rules`](../firestore.rules)
-3. **Publier** (obligatoire, sinon `permission-denied`)
+Déjà dans le dépôt. Publication :
 
-Les anciennes collections `vaults` / `coffres` / `users/.../vault` ne sont plus écrites.
+```bash
+firebase deploy --only firestore:rules --project flutter-pwd-container
+```
+
+Chaque utilisateur connecté peut lire/écrire **uniquement** `users/{sonUid}/**`.
+Le mot de passe maître n’est pas un champ Firestore : l’app ne l’envoie jamais.
 
 ## Où regarder
 

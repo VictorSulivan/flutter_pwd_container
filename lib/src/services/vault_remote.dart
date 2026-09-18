@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import 'vault_envelope.dart';
@@ -88,8 +89,22 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
     return _user(userId).collection('fiches');
   }
 
+  Future<void> _ensureAuth(String userId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError(
+        'Pas de session Firebase Auth. Reconnecte-toi avec Google.',
+      );
+    }
+    if (user.uid != userId) {
+      throw StateError('Session ${user.uid} ≠ coffre $userId.');
+    }
+    await user.getIdToken(true);
+  }
+
   @override
   Future<RemoteVault?> read(String userId) async {
+    await _ensureAuth(userId);
     try {
       final meta = await _enveloppe(userId).get(
         const GetOptions(source: Source.server),
@@ -150,21 +165,32 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
 
   @override
   Future<void> write(String userId, RemoteVault vault) async {
+    await _ensureAuth(userId);
     final user = _user(userId);
     final enveloppe = _enveloppe(userId);
     final fiches = _fiches(userId);
     try {
-      final existing = await fiches.get(const GetOptions(source: Source.server));
+      QuerySnapshot<Map<String, dynamic>>? existing;
+      try {
+        existing = await fiches.get();
+      } on FirebaseException catch (error) {
+        debugPrint('Firestore list fiches: ${error.code} ${error.message}');
+      }
       final keep = {for (final fiche in vault.fiches) fiche.id};
       final batch = _firestore.batch();
-      batch.set(user, const {'kind': 'coffre'});
+      batch.set(user, {
+        'kind': 'coffre',
+        'uid': userId,
+      });
       batch.set(enveloppe, vault.envelope.toFirestoreMetaMap());
       for (final fiche in vault.fiches) {
         batch.set(fiches.doc(fiche.id), fiche.toFirestoreMap());
       }
-      for (final doc in existing.docs) {
-        if (!keep.contains(doc.id)) {
-          batch.delete(doc.reference);
+      if (existing != null) {
+        for (final doc in existing.docs) {
+          if (!keep.contains(doc.id)) {
+            batch.delete(doc.reference);
+          }
         }
       }
       await batch.commit();
