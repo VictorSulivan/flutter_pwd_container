@@ -6,6 +6,7 @@ Coffre de mots de passe Flutter : session Firebase (Google), navigation GoRouter
 
 - Cahier des charges : [`project.md`](project.md)
 - Décisions et architecture : [`docs/README.md`](docs/README.md)
+- Publication APK (Uptodown) : [`docs/publish.md`](docs/publish.md)
 
 ## Lancer l’app
 

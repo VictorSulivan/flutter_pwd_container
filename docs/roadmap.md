@@ -17,6 +17,7 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 11. **Alertes** — in-app + notification locale (compteurs), à l’unlock et à l’enregistrement.
 12. **Fuites HIBP** — Pwned Passwords k-anonymity, hash et comparaison sur le téléphone.
 13. **Assistant IA** — Gemini 3.6 Flash (Firebase AI), briefing + questions, plan Dart, compteurs seulement. Repli Dart hors ligne.
+14. **APK store alternatif** — APK signé (CI `main`), dépôt Uptodown. Keystore hors git.
 
 ## Suivant
 

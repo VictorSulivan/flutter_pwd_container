@@ -111,3 +111,11 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 **Pourquoi :** un LLM on-device (Qwen3 / LiteRT, ~330 Mo) a été refusé comme trop lourd pour le projet. Gemini Developer API est gratuit dans le quota, déjà branché au projet Firebase. Les secrets restent hors prompt.
 
 **Revoir si :** quota Gemini insuffisant, ou App Check obligatoire en prod. Détail : [`assistant.md`](assistant.md).
+
+## D17 — APK signé, store alternatif Uptodown
+
+**Décision :** le livrable store est un **APK** (`flutter build apk`), pas un AAB Play Store. Le store visé est **Uptodown** (dépôt manuel de l’APK). Un workflow sur **`main`** fabrique l’APK signé et le joint à une GitHub Release : ce n’est que le fichier à uploader, pas la vitrine. F-Droid est exclu (Firebase propriétaire). Keystore hors git. `allowBackup=false`. `applicationId` inchangé.
+
+**Pourquoi :** Uptodown accepte un APK avec Google Sign-In / Firebase, sans compte Play. GitHub Actions ne remplace pas un store : il produit le binaire.
+
+**Revoir si :** Aptoide, Amazon Appstore, ou un vrai `applicationId`. Détail : [`publish.md`](publish.md).

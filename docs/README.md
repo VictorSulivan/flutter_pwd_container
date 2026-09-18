@@ -14,5 +14,6 @@ Le cahier des charges produit est dans [`../project.md`](../project.md). Ici on 
 | [generator.md](generator.md) | Générateur local, hors Firebase |
 | [security.md](security.md) | Santé du coffre : force, doublons, âge, fuites |
 | [assistant.md](assistant.md) | Assistant Gemini (Firebase AI), métadonnées seulement |
+| [publish.md](publish.md) | APK signé → Uptodown (GitHub Release = fichier, pas le store) |
 | [decisions.md](decisions.md) | Décisions figées (pourquoi X plutôt que Y) |
 | [roadmap.md](roadmap.md) | Fait / pas encore fait, ordre des prochaines étapes |
