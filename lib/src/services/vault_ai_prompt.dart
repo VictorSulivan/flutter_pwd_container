@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'on_device_llm.dart';
 import 'security_ai_advisor.dart';
+import 'vault_llm.dart';
 
 /// Prompts zero-knowledge : JSON de compteurs, jamais de secrets.
 class VaultAiPrompt {
@@ -10,8 +10,8 @@ class VaultAiPrompt {
       'Tu reçois des compteurs JSON, jamais de mot de passe, d’identifiant, d’URL ni de nom de site. '
       'Parle du score, des mots trop simples, des doublons et de l’âge. '
       'N’invente aucun chiffre. Ne répète pas la même idée. '
-      'N’écris pas « vérification réseau », « n’a pas eu lieu », ni « comptes » : '
-      'tu n’as pas de liste de comptes, seulement des compteurs.';
+      'Si leaksChecked vaut 0, une seule phrase : les fuites n’ont pas pu être vérifiées (pas de réseau). '
+      'Sinon ne parle pas de réseau. Tu n’as pas de liste de comptes, seulement des compteurs.';
 
   static String briefingUser(VaultAiFacts facts) {
     return 'Rédige le briefing du coffre à partir de ces compteurs JSON, sans secret :\n'
@@ -23,13 +23,12 @@ class VaultAiPrompt {
   }
 
   static String questionUser(String question, VaultAiFacts facts) {
-    final payload = Map<String, int>.from(facts.toModelPayload())
-      ..remove('leaksChecked');
     return 'Question: $question\n\n'
         'Compteurs du coffre (JSON, aucun secret) :\n'
-        '${jsonEncode(payload)}\n\n'
+        '${jsonEncode(facts.toModelPayload())}\n\n'
         'Réponds en quelques phrases. Pas de liste de sites. '
-        'Ne parle pas de réseau ni de comptes manquants.';
+        'Si leaksChecked vaut 0, dis que les fuites n’ont pas été vérifiées. '
+        'N’invente aucun chiffre.';
   }
 
   /// Feuille de route du conseil fiche : le modèle ne rédige que le paragraphe « en clair ».
@@ -141,10 +140,25 @@ class VaultAiPrompt {
 class VaultAiAssistant {
   const VaultAiAssistant(this.llm);
 
-  final OnDeviceLlm llm;
+  final VaultLlm llm;
 
   Future<AiBriefing> brief(VaultAiFacts facts) async {
-    return SecurityAiAdvisor().brief(facts);
+    final fallback = SecurityAiAdvisor().brief(facts);
+    if (!await llm.isReady) {
+      return fallback;
+    }
+    try {
+      final raw = await llm.complete(
+        system: VaultAiPrompt.system,
+        user: VaultAiPrompt.briefingUser(facts),
+      );
+      return VaultAiPrompt.parseBriefing(
+        raw,
+        fallback: fallback,
+      ).withSource(AiSource.gemini);
+    } on Object catch (error) {
+      return fallback.withError(error);
+    }
   }
 
   Future<EntryAdviceReport> briefEntry(
@@ -172,7 +186,7 @@ class VaultAiAssistant {
       return advisor.answer(trimmed, facts);
     }
     final dart = advisor.answer(trimmed, facts);
-    if (advisor.isGuidedQuestion(trimmed) || !await llm.isReady) {
+    if (!await llm.isReady) {
       return dart;
     }
     try {
@@ -188,30 +202,16 @@ class VaultAiAssistant {
           nextStep: '',
         ),
       ).body;
-      if (body.trim().isEmpty || _looksLikeNetworkSpam(body)) {
+      if (body.trim().isEmpty) {
         return dart;
       }
-      return AiAnswer(question: trimmed, body: body);
-    } on Object {
-      return dart;
+      return AiAnswer(
+        question: trimmed,
+        body: body,
+        source: AiSource.gemini,
+      );
+    } on Object catch (error) {
+      return dart.withError(error);
     }
   }
-}
-
-bool _looksLikeNetworkSpam(String body) {
-  final lower = body.toLowerCase();
-  const markers = [
-    'vérif',
-    'verif',
-    'n’a pas eu lieu',
-    'n a pas eu lieu',
-    'pas eu lieu',
-  ];
-  var hits = 0;
-  for (final marker in markers) {
-    if (lower.contains(marker)) {
-      hits++;
-    }
-  }
-  return hits >= 1;
 }

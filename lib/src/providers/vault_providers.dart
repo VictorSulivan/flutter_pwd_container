@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/vault_entry.dart';
-import '../services/gemma_on_device_llm.dart';
-import '../services/on_device_llm.dart';
+import '../services/firebase_vault_llm.dart';
 import '../services/password_health.dart';
 import '../services/pwned_passwords.dart';
 import '../services/security_ai_advisor.dart';
 import '../services/security_alerts.dart';
 import '../services/vault_ai_prompt.dart';
+import '../services/vault_llm.dart';
 import '../services/security_notifications.dart';
 import '../services/vault_envelope.dart';
 import '../services/vault_remote.dart';
@@ -105,33 +105,17 @@ final vaultAiFactsProvider = Provider<VaultAiFacts>((ref) {
   );
 });
 
-final onDeviceLlmProvider = Provider<OnDeviceLlm>((ref) {
-  return GemmaOnDeviceLlm();
+final vaultLlmProvider = Provider<VaultLlm>((ref) {
+  return const FirebaseVaultLlm();
 });
 
 final vaultAiAssistantProvider = Provider<VaultAiAssistant>((ref) {
-  return VaultAiAssistant(ref.watch(onDeviceLlmProvider));
+  return VaultAiAssistant(ref.watch(vaultLlmProvider));
 });
-
-final llmReadyProvider = FutureProvider<bool>((ref) {
-  return ref.watch(onDeviceLlmProvider).isReady;
-});
-
-final llmInstallProgressProvider =
-    NotifierProvider<LlmInstallProgressNotifier, int?>(
-      LlmInstallProgressNotifier.new,
-    );
-
-class LlmInstallProgressNotifier extends Notifier<int?> {
-  @override
-  int? build() => null;
-
-  void setProgress(int? value) => state = value;
-}
 
 final vaultAiBriefingProvider = FutureProvider<AiBriefing>((ref) async {
   await ref.watch(pwnedHitsProvider.future);
-  return SecurityAiAdvisor().brief(ref.watch(vaultAiFactsProvider));
+  return ref.watch(vaultAiAssistantProvider).brief(ref.watch(vaultAiFactsProvider));
 });
 
 final entryAiAdviceProvider =

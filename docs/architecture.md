@@ -15,7 +15,6 @@ sequenceDiagram
 
   Main->>Firebase: initializeApp(DefaultFirebaseOptions)
   Main->>Google: initialize(serverClientId) hors web
-  Main->>Main: FlutterGemma.initialize(LiteRtLmEngine)
   Main->>Scope: runApp(ProviderScope(App))
   Scope->>Router: watch(routerProvider)
   Router->>Auth: currentUser / authStateChanges
@@ -32,7 +31,7 @@ sequenceDiagram
 
 | Fichier | Rôle |
 | --- | --- |
-| [`lib/main.dart`](../lib/main.dart) | Bootstrap : Firebase, Google Sign-In, LiteRT-LM (`LiteRtLmEngine`), `ProviderScope` |
+| [`lib/main.dart`](../lib/main.dart) | Bootstrap : Firebase, Google Sign-In, `ProviderScope` |
 | [`lib/firebase_options.dart`](../lib/firebase_options.dart) | Clés client générées par FlutterFire (projet `flutter-pwd-container`) |
 | [`lib/src/app.dart`](../lib/src/app.dart) | `MaterialApp.router` + thème, sans logique métier |
 | [`lib/src/theme/app_theme.dart`](../lib/src/theme/app_theme.dart) | Couleurs SafeVault (fond sombre, cyan) |
@@ -46,15 +45,15 @@ sequenceDiagram
 | [`lib/src/views/generator_view.dart`](../lib/src/views/generator_view.dart) | Générateur indépendant |
 | [`lib/src/views/security_view.dart`](../lib/src/views/security_view.dart) | Santé du coffre (score, fuites, doublons, âge) |
 | [`lib/src/views/security_passwords_view.dart`](../lib/src/views/security_passwords_view.dart) | Analyse d’une fiche à la fois |
-| [`lib/src/views/assistant_view.dart`](../lib/src/views/assistant_view.dart) | Download du modèle, briefing LLM, questions |
+| [`lib/src/views/assistant_view.dart`](../lib/src/views/assistant_view.dart) | Briefing Gemini, questions |
 | [`lib/src/views/assistant_plan_view.dart`](../lib/src/views/assistant_plan_view.dart) | Plan d’action priorisé |
-| [`lib/src/views/assistant_entry_view.dart`](../lib/src/views/assistant_entry_view.dart) | Bilan d’une fiche (signaux, en clair, étapes) |
+| [`lib/src/views/assistant_entry_view.dart`](../lib/src/views/assistant_entry_view.dart) | Bilan d’une fiche (signaux, étapes) |
 | [`lib/src/services/password_generator.dart`](../lib/src/services/password_generator.dart) | `Random.secure()`, jeux de caractères |
 | [`lib/src/services/password_health.dart`](../lib/src/services/password_health.dart) | Analyse locale : force, SHA-256, obsolescence, fuites |
 | [`lib/src/services/pwned_passwords.dart`](../lib/src/services/pwned_passwords.dart) | HIBP k-anonymity (préfixe SHA-1 seulement) |
 | [`lib/src/services/security_ai_advisor.dart`](../lib/src/services/security_ai_advisor.dart) | Compteurs + plan d’action (IDs de fiches) |
-| [`lib/src/services/on_device_llm.dart`](../lib/src/services/on_device_llm.dart) | Contrat LLM local + stub de tests |
-| [`lib/src/services/gemma_on_device_llm.dart`](../lib/src/services/gemma_on_device_llm.dart) | Qwen3 0.6B via flutter_gemma / LiteRT-LM |
+| [`lib/src/services/vault_llm.dart`](../lib/src/services/vault_llm.dart) | Contrat LLM + stub de tests |
+| [`lib/src/services/firebase_vault_llm.dart`](../lib/src/services/firebase_vault_llm.dart) | Gemini via Firebase AI Logic |
 | [`lib/src/services/vault_ai_prompt.dart`](../lib/src/services/vault_ai_prompt.dart) | Prompts JSON (aucun secret) + parse du briefing |
 | [`lib/src/services/security_alerts.dart`](../lib/src/services/security_alerts.dart) | Textes d’alerte (sans secret) |
 | [`lib/src/services/security_notifications.dart`](../lib/src/services/security_notifications.dart) | Notification système, compteurs seulement |
@@ -66,7 +65,7 @@ sequenceDiagram
 | [`lib/src/services/vault_remote.dart`](../lib/src/services/vault_remote.dart) | `users/{uid}/enveloppe` + `users/{uid}/fiches` |
 | [`lib/src/services/vault_sync.dart`](../lib/src/services/vault_sync.dart) | Last-write-wins local ↔ Firestore |
 | [`lib/src/services/vault_repository.dart`](../lib/src/services/vault_repository.dart) | load / upsert / delete par `uid` |
-| [`lib/src/providers/vault_providers.dart`](../lib/src/providers/vault_providers.dart) | Coffre, santé, LLM on-device |
+| [`lib/src/providers/vault_providers.dart`](../lib/src/providers/vault_providers.dart) | Coffre, santé, assistant Gemini |
 | [`android/app/google-services.json`](../android/app/google-services.json) | Config native Android (plugin Google Services) |
 
 ## Couches
@@ -78,7 +77,7 @@ Providers Riverpod (session, coffre, assistant)
         ↓
 Repositories (AuthRepository, VaultRepository) + VaultAiAssistant
         ↓
-SDK (Firebase Auth, Google Sign-In, fichier + Firestore enveloppe chiffrée, LiteRT-LM)
+SDK (Firebase Auth, Google Sign-In, fichier + Firestore enveloppe chiffrée, Firebase AI / Gemini)
 ```
 
 Les vues ne parlent pas à Firebase directement. Ça permet de tester un écran sans Firebase, et de changer d’implémentation (ex. fake auth en test) sans retoucher l’UI.

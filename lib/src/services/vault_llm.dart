@@ -2,20 +2,15 @@ import 'dart:convert';
 
 import 'security_ai_advisor.dart';
 
-/// Modèle public INT4 (~330 Mo), sans jeton Hugging Face.
+/// Gemini via Firebase AI Logic (API Developer, sans clé dans le code).
 abstract final class VaultLlmSpec {
-  static const fileName = 'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm';
-  static const url =
-      'https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm';
-  static const label = 'Qwen3 0.6B';
-  static const sizeLabel = 'environ 330 Mo';
+  static const model = 'gemini-3.6-flash';
+  static const label = 'Gemini 3.6 Flash';
 }
 
-/// Inférence locale. Le prompt ne doit contenir que des compteurs.
-abstract class OnDeviceLlm {
+/// Inférence distante. Le prompt ne doit contenir que des compteurs.
+abstract class VaultLlm {
   Future<bool> get isReady;
-
-  Future<void> install({void Function(int progress)? onProgress});
 
   Future<String> complete({
     required String system,
@@ -23,20 +18,12 @@ abstract class OnDeviceLlm {
   });
 }
 
-/// Stub déterministe pour `flutter test` : pas de binaire LiteRT.
-class MemoryOnDeviceLlm implements OnDeviceLlm {
-  MemoryOnDeviceLlm({this.installed = true});
-
-  bool installed;
+/// Stub déterministe pour `flutter test` : pas d’appel Gemini.
+class MemoryVaultLlm implements VaultLlm {
+  const MemoryVaultLlm();
 
   @override
-  Future<bool> get isReady async => installed;
-
-  @override
-  Future<void> install({void Function(int progress)? onProgress}) async {
-    onProgress?.call(100);
-    installed = true;
-  }
+  Future<bool> get isReady async => true;
 
   @override
   Future<String> complete({

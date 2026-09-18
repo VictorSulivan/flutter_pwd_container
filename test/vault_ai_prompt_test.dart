@@ -1,4 +1,4 @@
-import 'package:flutter_pwd_container/src/services/on_device_llm.dart';
+import 'package:flutter_pwd_container/src/services/vault_llm.dart';
 import 'package:flutter_pwd_container/src/services/password_health.dart';
 import 'package:flutter_pwd_container/src/services/security_ai_advisor.dart';
 import 'package:flutter_pwd_container/src/services/vault_ai_prompt.dart';
@@ -33,14 +33,15 @@ void main() {
     expect(empty.headline, 'Repli');
   });
 
-  test('MemoryOnDeviceLlm produit un briefing de coffre vide', () async {
-    final llm = MemoryOnDeviceLlm();
+  test('MemoryVaultLlm produit un briefing de coffre vide', () async {
+    final llm = const MemoryVaultLlm();
     final assistant = VaultAiAssistant(llm);
     final facts = VaultAiFacts.fromHealth(
       PasswordHealthAnalyzer().analyze(const []),
     );
     final briefing = await assistant.brief(facts);
     expect(briefing.headline, contains('Rien à analyser'));
+    expect(briefing.source, AiSource.gemini);
     expect(await llm.isReady, isTrue);
   });
 
@@ -92,8 +93,38 @@ void main() {
     );
     final answer = await assistant.answer('Vg7#kL92mQp!xR4s', facts);
     expect(llm.calls, isEmpty);
+    expect(answer.source, AiSource.local);
     expect(answer.body, contains('Je n’analyse pas un texte collé'));
     expect(answer.body, isNot(contains('Vg7#kL92mQp!xR4s')));
+  });
+
+  test('une question libre part vers le modèle sans secret', () async {
+    final llm = _RecordingLlm()
+      ..reply =
+          'Le coffre est vide.\n---\nAjoute une fiche pour avoir un briefing.\n---\nEnregistre un accès.';
+    final assistant = VaultAiAssistant(llm);
+    final facts = VaultAiFacts.fromHealth(
+      PasswordHealthAnalyzer().analyze(const []),
+    );
+    final answer = await assistant.answer(
+      'Comment je peux renforcer le coffre ?',
+      facts,
+    );
+    expect(llm.calls, hasLength(1));
+    expect(llm.calls.single, contains('Comment je peux renforcer le coffre ?'));
+    expect(llm.calls.single, isNot(contains('password')));
+    expect(answer.source, AiSource.gemini);
+  });
+
+  test('si le modèle échoue, la réponse est un repli local', () async {
+    final assistant = VaultAiAssistant(_FailingLlm());
+    final facts = VaultAiFacts.fromHealth(
+      PasswordHealthAnalyzer().analyze(const []),
+    );
+    final answer = await assistant.answer('Par où commencer ?', facts);
+    expect(answer.source, AiSource.local);
+    expect(answer.error, contains('Gemini indisponible'));
+    expect(answer.body, isNotEmpty);
   });
 
   test('le bilan fiche ne passe pas par le modèle', () async {
@@ -122,15 +153,12 @@ void main() {
   });
 }
 
-class _RecordingLlm implements OnDeviceLlm {
+class _RecordingLlm implements VaultLlm {
   final calls = <String>[];
   String reply = 'ne doit pas être appelé';
 
   @override
   Future<bool> get isReady async => true;
-
-  @override
-  Future<void> install({void Function(int progress)? onProgress}) async {}
 
   @override
   Future<String> complete({
@@ -139,5 +167,18 @@ class _RecordingLlm implements OnDeviceLlm {
   }) async {
     calls.add(user);
     return reply;
+  }
+}
+
+class _FailingLlm implements VaultLlm {
+  @override
+  Future<bool> get isReady async => true;
+
+  @override
+  Future<String> complete({
+    required String system,
+    required String user,
+  }) async {
+    throw StateError('Gemini indisponible');
   }
 }

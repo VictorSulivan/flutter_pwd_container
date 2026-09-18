@@ -104,10 +104,10 @@ Ordre : auth Riverpod → coffre local → PBKDF2 / enveloppe → Firestore cons
 
 **Revoir si :** usage hors-ligne strict (télécharger le corpus complet).
 
-## D16 — Assistant IA on-device, métadonnées seulement
+## D16 — Assistant IA Gemini (Firebase), métadonnées seulement
 
-**Décision :** briefing et Q&A via un **LLM on-device** (Qwen3 0.6B INT4, LiteRT-LM, `flutter_gemma`). Téléchargement unique ~330 Mo, ensuite inférence CPU hors ligne. Le modèle ne reçoit que `toModelPayload()`. Le **plan d’action** reste en Dart (IDs de fiches). Pas de LLM cloud. Pages dédiées (`/assistant`, `/assistant/plan`, `/assistant/fiche/:id`). Have I Been Pwned reste optionnel : hors ligne, l’assistant ne prétend pas « aucune fuite ». Un secret collé n’est pas envoyé au modèle. `MemoryOnDeviceLlm` remplace le moteur natif dans `flutter test`.
+**Décision :** briefing et Q&A libres via **Gemini 3.6 Flash** (`firebase_ai`, `FirebaseAI.googleAI()`). Le modèle ne reçoit que `toModelPayload()`. Le **plan d’action** et le **bilan fiche** restent en Dart (IDs de fiches). Pages dédiées (`/assistant`, `/assistant/plan`, `/assistant/fiche/:id`). Hors ligne / quota / timeout : texte Dart. Have I Been Pwned reste optionnel : l’assistant ne prétend pas « aucune fuite » si `leaksChecked=0`. Un secret collé n’est pas envoyé au modèle. `MemoryVaultLlm` remplace Gemini dans `flutter test`. Pas de clé API dans le code.
 
-**Pourquoi :** un modèle cloud créerait un historique chez un tiers. Un INT4 public (~330 Mo, sans jeton Hugging Face) tient sur le téléphone. Les phrases Dart restent le repli si l’inférence échoue.
+**Pourquoi :** un LLM on-device (Qwen3 / LiteRT, ~330 Mo) a été refusé comme trop lourd pour le projet. Gemini Developer API est gratuit dans le quota, déjà branché au projet Firebase. Les secrets restent hors prompt.
 
-**Revoir si :** un modèle plus grand tient en RAM, ou si LiteRT-LM GPU devient fiable sur tous les appareils. Détail : [`assistant.md`](assistant.md).
+**Revoir si :** quota Gemini insuffisant, ou App Check obligatoire en prod. Détail : [`assistant.md`](assistant.md).

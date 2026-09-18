@@ -85,11 +85,9 @@ Les écrans font `ref.watch(vaultEntriesProvider)` pour la liste. Les actions : 
 
 `vaultAiFactsProvider` : compteurs anonymisés (`toModelPayload()`). Jamais le secret.
 
-`onDeviceLlmProvider` : `GemmaOnDeviceLlm` (prod). Tests : `MemoryOnDeviceLlm`.
+`vaultLlmProvider` : `FirebaseVaultLlm` (prod). Tests : `MemoryVaultLlm`.
 
-`llmReadyProvider` / `llmInstallProgressProvider` : modèle installé ou non, barre de téléchargement.
-
-`vaultAiAssistantProvider` / `vaultAiBriefingProvider` / `entryAiAdviceProvider` : briefing coffre en Dart (après HIBP) ; questions guidées en Dart ; bilan fiche = signaux + étapes. Détail : [`assistant.md`](assistant.md).
+`vaultAiAssistantProvider` / `vaultAiBriefingProvider` / `entryAiAdviceProvider` : briefing coffre via Gemini après HIBP (repli Dart) ; tchat libre Gemini ; bilan fiche = signaux + étapes. Pastille de source sur chaque réponse. Détail : [`assistant.md`](assistant.md).
 
 `securityAlertsProvider` / `securityNotificationPortProvider` : bandeau in-app + notif système après unlock/sauvegarde.
 

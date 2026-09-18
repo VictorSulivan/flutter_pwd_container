@@ -152,16 +152,48 @@ class VaultAiFacts {
   }
 }
 
+enum AiSource {
+  gemini,
+  local;
+
+  String get label => switch (this) {
+    gemini => 'Gemini · Firebase AI',
+    local => 'Repli local',
+  };
+}
+
 class AiBriefing {
   const AiBriefing({
     required this.headline,
     required this.body,
     required this.nextStep,
+    this.source = AiSource.local,
+    this.error,
   });
 
   final String headline;
   final String body;
   final String nextStep;
+  final AiSource source;
+  final String? error;
+
+  AiBriefing withSource(AiSource source) {
+    return AiBriefing(
+      headline: headline,
+      body: body,
+      nextStep: nextStep,
+      source: source,
+    );
+  }
+
+  AiBriefing withError(Object error) {
+    return AiBriefing(
+      headline: headline,
+      body: body,
+      nextStep: nextStep,
+      error: shortAiError(error),
+    );
+  }
 }
 
 class AiAction {
@@ -179,10 +211,33 @@ class AiAction {
 }
 
 class AiAnswer {
-  const AiAnswer({required this.question, required this.body});
+  const AiAnswer({
+    required this.question,
+    required this.body,
+    this.source = AiSource.local,
+    this.error,
+  });
 
   final String question;
   final String body;
+  final AiSource source;
+  final String? error;
+
+  AiAnswer withError(Object error) {
+    return AiAnswer(
+      question: question,
+      body: body,
+      error: shortAiError(error),
+    );
+  }
+}
+
+String shortAiError(Object error) {
+  final text = error.toString().trim();
+  if (text.length <= 280) {
+    return text;
+  }
+  return text.substring(0, 280);
 }
 
 enum EntryAdviceTone { ok, watch, urgent }
@@ -235,7 +290,7 @@ class EntryAdviceReport {
 }
 
 /// Compteurs et plan d’action **on-device**.
-/// Le briefing en langage naturel passe par le LLM local (`VaultAiAssistant`).
+/// Le briefing en langage naturel passe par Gemini (`VaultAiAssistant`).
 /// Les mots de passe ne sont jamais lus ici.
 class SecurityAiAdvisor {
   static const suggestedQuestions = [
@@ -246,10 +301,9 @@ class SecurityAiAdvisor {
   ];
 
   static const privacyNote =
-      'Après un téléchargement unique (~330 Mo), le modèle Qwen3 tourne sur le téléphone. '
-      'L’inférence n’a pas besoin de Wi‑Fi ni de 4G. '
-      'Je ne vois que des compteurs : aucun mot de passe, identifiant ni URL. '
-      'Have I Been Pwned reste optionnel pour les fuites.';
+      'Tu peux poser n’importe quelle question sur le coffre. '
+      'Gemini ne reçoit que des compteurs : aucun mot de passe, identifiant ni URL. '
+      'Un secret collé n’est pas envoyé. Sans réseau, un texte local prend le relais.';
 
   AiBriefing brief(VaultAiFacts facts) {
     if (facts.entryCount == 0) {

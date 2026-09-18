@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pwd_container/src/models/vault_entry.dart';
 import 'package:flutter_pwd_container/src/providers/vault_providers.dart';
-import 'package:flutter_pwd_container/src/services/on_device_llm.dart';
+import 'package:flutter_pwd_container/src/services/vault_llm.dart';
 import 'package:flutter_pwd_container/src/services/pwned_passwords.dart';
 import 'package:flutter_pwd_container/src/views/assistant_view.dart';
 import 'package:flutter_pwd_container/src/views/entry_view.dart';
@@ -211,7 +211,7 @@ void main() {
     expect(find.text('Rien à analyser pour le moment.'), findsOneWidget);
   });
 
-  testWidgets('affiche l’assistant local d’un coffre vide', (tester) async {
+  testWidgets('affiche l’assistant d’un coffre vide', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -225,8 +225,10 @@ void main() {
 
     expect(find.text('Briefing du coffre'), findsOneWidget);
     expect(find.text('Rien à analyser pour l’instant'), findsOneWidget);
-    expect(find.textContaining('Inférence locale'), findsOneWidget);
+    expect(find.textContaining('Inférence Gemini'), findsOneWidget);
     expect(find.text('Voir le plan d’action'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Tchat'), 200);
+    expect(find.text('Tchat'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Que vois-tu exactement ?'),
       200,
@@ -237,7 +239,7 @@ void main() {
 
 final _pwnedOverride = [
   pwnedPasswordsLookupProvider.overrideWithValue(MemoryPwnedPasswords()),
-  onDeviceLlmProvider.overrideWithValue(MemoryOnDeviceLlm()),
+  vaultLlmProvider.overrideWithValue(const MemoryVaultLlm()),
 ];
 
 class _EmptyEntries extends VaultEntriesNotifier {
