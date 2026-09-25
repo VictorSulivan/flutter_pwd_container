@@ -16,4 +16,4 @@ Le cahier des charges produit est dans [`../project.md`](../project.md). Ici on 
 | [assistant.md](assistant.md) | Assistant Gemini (Firebase AI), métadonnées seulement |
 | [publish.md](publish.md) | APK signé → Uptodown (GitHub Release = fichier, pas le store) |
 | [decisions.md](decisions.md) | Décisions figées (pourquoi X plutôt que Y) |
-| [roadmap.md](roadmap.md) | Fait / pas encore fait, ordre des prochaines étapes |
+| [roadmap.md](roadmap.md) | Ce qui est livré, et ce qui reste hors scope |

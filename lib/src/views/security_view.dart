@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/vault_providers.dart';
 import '../router/app_navigator.dart';
+import '../router/app_routes.dart';
 import '../services/password_health.dart';
 import '../services/security_alerts.dart';
 import '../theme/app_theme.dart';
@@ -33,17 +34,14 @@ class SecurityView extends ConsumerWidget {
                         onPressed: () => popToPrevious(context),
                         icon: const Icon(Icons.arrow_back),
                       ),
-                      const Expanded(
-                        child: SafeVaultHeader(title: 'Sécurité'),
-                      ),
+                      const Expanded(child: SafeVaultHeader(title: 'Sécurité')),
                     ],
                   ),
                 ),
                 Expanded(
                   child: entries.when(
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, _) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
@@ -136,15 +134,15 @@ class SecurityView extends ConsumerWidget {
                             subtitle: health.entries.isEmpty
                                 ? 'Aucune fiche à détailler pour le moment.'
                                 : '${health.entries.length} fiche${health.entries.length > 1 ? 's' : ''} · ${SecurityAlerts.ficheLabel(health.flaggedCount)}',
-                            onTap: () => context.push('/security/passwords'),
+                            onTap: () =>
+                                context.push(AppRoutes.securityPasswords),
                           ),
                           const SizedBox(height: 10),
                           _LinkCard(
                             icon: Icons.auto_awesome,
                             title: 'Assistant IA',
-                            subtitle:
-                                'Briefing en langage naturel, compteurs seulement.',
-                            onTap: () => context.push('/assistant'),
+                            subtitle: 'Briefing en langage naturel, compteurs seulement.',
+                            onTap: () => context.push(AppRoutes.assistant),
                           ),
                           const SizedBox(height: 12),
                           const _LocalAnalysisCard(),
@@ -328,13 +326,7 @@ class _TipCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  tip,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.35,
-                  ),
-                ),
+                Text(tip, style: const TextStyle(fontSize: 14, height: 1.35)),
               ],
             ),
           ),

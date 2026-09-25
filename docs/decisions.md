@@ -20,7 +20,7 @@ Journal des choix déjà tranchés, pour ne pas les rejouer à chaque étape.
 
 **Décision :** un seul bouton « Continuer avec Google ». Pas de champs e-mail, pas d’avatar sur l’écran login.
 
-**Pourquoi :** le template UI prévoyait e-mail + mot de passe maître + photo de profil. Sans session, la photo n’a pas de source. L’e-mail Firebase est prévu dans `project.md` mais ce n’est pas le déverrouillage du coffre (le mot de passe maître local viendra avec le chiffrement).
+**Pourquoi :** un seul bouton suffit pour l’identité. L’e-mail Firebase n’est pas dans l’app. Le maître local déverrouille le coffre, pas le compte Google.
 
 ## D4 — Redirection GoRouter plutôt que `context.go` après login
 

@@ -19,12 +19,6 @@ Alignée sur [`project.md`](../project.md). Une case = en principe **un commit**
 13. **Assistant IA** — Gemini 3.6 Flash (Firebase AI), briefing + questions, plan Dart, compteurs seulement. Repli Dart hors ligne.
 14. **APK store alternatif** — APK signé (CI `main`), dépôt Uptodown. Keystore hors git.
 
-## Suivant
+## Hors scope
 
-Biométrie, puis login e-mail.
-
-## Hors code pour l’instant
-
-- Push FCM depuis un serveur / Cloud Function (le jeton est déjà enregistré ; l’analyse du coffre reste locale).
-- Login e-mail (volontairement retiré de l’UI actuelle).
-- Recherche de fuites **par e-mail** (API HIBP payante). Les fuites **de mot de passe** (Pwned Passwords) sont en place.
+Biométrie, login e-mail Firebase, fuites HIBP par adresse mail, push calculé côté serveur.

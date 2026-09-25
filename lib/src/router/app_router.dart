@@ -18,18 +18,7 @@ import '../views/security_passwords_view.dart';
 import '../views/security_view.dart';
 import '../views/unlock_view.dart';
 import 'app_navigator.dart';
-
-abstract final class AppRoutes {
-  static const home = '/';
-  static const login = '/login';
-  static const unlock = '/unlock';
-  static const generator = '/generator';
-  static const security = '/security';
-  static const securityPasswords = '/security/passwords';
-  static const assistant = '/assistant';
-  static const assistantPlan = '/assistant/plan';
-  static const entryNew = '/entry/new';
-}
+import 'app_routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _AuthRefresh(
@@ -50,8 +39,7 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
           user != null || ref.read(authStateProvider).value != null;
       final uid = user?.uid ?? ref.read(authStateProvider).value?.uid;
       final unlocked =
-          uid != null &&
-          ref.read(vaultRepositoryProvider).isUnlockedFor(uid);
+          uid != null && ref.read(vaultRepositoryProvider).isUnlockedFor(uid);
       final location = state.matchedLocation;
 
       if (!loggedIn) {
@@ -100,20 +88,18 @@ GoRouter createRouter(Ref ref, Listenable authRefresh) {
         builder: (context, state) => const AssistantPlanView(),
       ),
       GoRoute(
-        path: '/assistant/fiche/:id',
-        builder: (context, state) => AssistantEntryView(
-          entryId: state.pathParameters['id'] ?? '',
-        ),
+        path: AppRoutes.assistantFiche,
+        builder: (context, state) =>
+            AssistantEntryView(entryId: state.pathParameters['id'] ?? ''),
       ),
       GoRoute(
         path: AppRoutes.entryNew,
         builder: (context, state) => const EntryView(),
       ),
       GoRoute(
-        path: '/entry/:id',
-        builder: (context, state) => EntryView(
-          entryId: state.pathParameters['id'],
-        ),
+        path: AppRoutes.entry,
+        builder: (context, state) =>
+            EntryView(entryId: state.pathParameters['id']),
       ),
     ],
   );

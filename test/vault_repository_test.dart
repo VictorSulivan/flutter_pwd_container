@@ -85,23 +85,26 @@ void main() {
     expect((await repository.load('user-a')).single.serviceName, 'A');
   });
 
-  test('l\'enveloppe locale ne contient pas le mot de passe en clair', () async {
-    await openUser('user-a');
-    await repository.upsert(
-      'user-a',
-      VaultEntry.create(
-        serviceName: 'GitHub',
-        username: 'orion',
-        password: 's3cret',
-      ),
-    );
+  test(
+    'l\'enveloppe locale ne contient pas le mot de passe en clair',
+    () async {
+      await openUser('user-a');
+      await repository.upsert(
+        'user-a',
+        VaultEntry.create(
+          serviceName: 'GitHub',
+          username: 'orion',
+          password: 's3cret',
+        ),
+      );
 
-    final blob = await blobStore.read('user-a');
-    final haystack = String.fromCharCodes(blob!);
-    expect(haystack, contains('wrappedDek'));
-    expect(haystack, contains('pbkdf2-hmac-sha256'));
-    expect(haystack, isNot(contains('s3cret')));
-  });
+      final blob = await blobStore.read('user-a');
+      final haystack = String.fromCharCodes(blob!);
+      expect(haystack, contains('wrappedDek'));
+      expect(haystack, contains('pbkdf2-hmac-sha256'));
+      expect(haystack, isNot(contains('s3cret')));
+    },
+  );
 
   test('met à jour et supprime une fiche', () async {
     await openUser('user-a');

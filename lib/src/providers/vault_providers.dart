@@ -7,10 +7,10 @@ import '../services/password_health.dart';
 import '../services/pwned_passwords.dart';
 import '../services/security_ai_advisor.dart';
 import '../services/security_alerts.dart';
-import '../services/vault_ai_prompt.dart';
-import '../services/vault_llm.dart';
 import '../services/security_notifications.dart';
+import '../services/vault_ai_prompt.dart';
 import '../services/vault_envelope.dart';
+import '../services/vault_llm.dart';
 import '../services/vault_remote.dart';
 import '../services/vault_repository.dart';
 import '../services/vault_storage.dart';
@@ -84,16 +84,17 @@ final pwnedPasswordsLookupProvider = Provider<PwnedPasswordsLookup>((ref) {
   return HibpPwnedPasswords();
 });
 
-final pwnedHitsProvider =
-    FutureProvider<Map<String, PwnedPasswordHit>>((ref) async {
-      final entries = ref.watch(vaultEntriesProvider).asData?.value ?? const [];
-      if (entries.isEmpty) {
-        return const {};
-      }
-      return ref.watch(pwnedPasswordsLookupProvider).checkEntries([
-        for (final entry in entries) (id: entry.id, password: entry.password),
-      ]);
-    });
+final pwnedHitsProvider = FutureProvider<Map<String, PwnedPasswordHit>>((
+  ref,
+) async {
+  final entries = ref.watch(vaultEntriesProvider).asData?.value ?? const [];
+  if (entries.isEmpty) {
+    return const {};
+  }
+  return ref.watch(pwnedPasswordsLookupProvider).checkEntries([
+    for (final entry in entries) (id: entry.id, password: entry.password),
+  ]);
+});
 
 final vaultAiFactsProvider = Provider<VaultAiFacts>((ref) {
   final health = ref.watch(vaultHealthProvider);
@@ -115,24 +116,28 @@ final vaultAiAssistantProvider = Provider<VaultAiAssistant>((ref) {
 
 final vaultAiBriefingProvider = FutureProvider<AiBriefing>((ref) async {
   await ref.watch(pwnedHitsProvider.future);
-  return ref.watch(vaultAiAssistantProvider).brief(ref.watch(vaultAiFactsProvider));
+  return ref
+      .watch(vaultAiAssistantProvider)
+      .brief(ref.watch(vaultAiFactsProvider));
 });
 
-final entryAiAdviceProvider =
-    Provider.family<EntryAdviceReport, String>((ref, entryId) {
-      final facts = ref.watch(vaultAiFactsProvider);
-      final entry = facts.entries
-          .where((item) => item.entryId == entryId)
-          .firstOrNull;
-      if (entry == null) {
-        return EntryAdviceReport.missing;
-      }
-      return SecurityAiAdvisor().reportEntry(
-        entry,
-        leaksChecked: facts.leaksChecked,
-        leaksPending: facts.leaksPending,
-      );
-    });
+final entryAiAdviceProvider = Provider.family<EntryAdviceReport, String>((
+  ref,
+  entryId,
+) {
+  final facts = ref.watch(vaultAiFactsProvider);
+  final entry = facts.entries
+      .where((item) => item.entryId == entryId)
+      .firstOrNull;
+  if (entry == null) {
+    return EntryAdviceReport.missing;
+  }
+  return SecurityAiAdvisor().reportEntry(
+    entry,
+    leaksChecked: facts.leaksChecked,
+    leaksPending: facts.leaksPending,
+  );
+});
 
 bool _leaksWereChecked(
   VaultHealthReport health,
@@ -168,13 +173,15 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
 
   void _captureSyncError() {
     final error = ref.read(vaultRepositoryProvider).lastRemoteError;
-    ref.read(vaultSyncErrorProvider.notifier).setMessage(
-      error == null
-          ? null
-          : error.toString().contains('permission-denied')
-          ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
-          : 'La copie cloud a échoué. Le coffre local est à jour.',
-    );
+    ref
+        .read(vaultSyncErrorProvider.notifier)
+        .setMessage(
+          error == null
+              ? null
+              : error.toString().contains('permission-denied')
+              ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
+              : 'La copie cloud a échoué. Le coffre local est à jour.',
+        );
   }
 
   Future<void> create(String masterPassword) async {
@@ -205,11 +212,13 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
       return;
     } on Object catch (error) {
       final denied = error.toString().contains('permission-denied');
-      ref.read(vaultSyncErrorProvider.notifier).setMessage(
-        denied
-            ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
-            : 'La copie cloud a échoué. Le coffre local est à jour.',
-      );
+      ref
+          .read(vaultSyncErrorProvider.notifier)
+          .setMessage(
+            denied
+                ? 'La copie cloud a été refusée. Publie les règles Firestore, puis réessaie.'
+                : 'La copie cloud a échoué. Le coffre local est à jour.',
+          );
       return;
     }
     ref.read(vaultSyncErrorProvider.notifier).setMessage(null);
@@ -248,9 +257,7 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
       final hits = await ref.read(pwnedPasswordsLookupProvider).checkEntries([
         for (final entry in entries) (id: entry.id, password: entry.password),
       ]);
-      pwnedCounts = {
-        for (final hit in hits.entries) hit.key: hit.value.count,
-      };
+      pwnedCounts = {for (final hit in hits.entries) hit.key: hit.value.count};
     } on Object catch (error) {
       debugPrint('HIBP unlock: $error');
     }
@@ -266,14 +273,16 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     List<VaultEntry> vault,
   ) async {
     try {
-      final hit = await ref.read(pwnedPasswordsLookupProvider).check(
-        entry.password,
-      );
+      final hit = await ref
+          .read(pwnedPasswordsLookupProvider)
+          .check(entry.password);
       if (hit.pwned) {
-        await ref.read(securityNotificationPortProvider).notifyWeakPassword(
-          serviceName: entry.serviceName,
-          reason: SecurityAlerts.pwnedDraft(hit).body,
-        );
+        await ref
+            .read(securityNotificationPortProvider)
+            .notifyWeakPassword(
+              serviceName: entry.serviceName,
+              reason: SecurityAlerts.pwnedDraft(hit).body,
+            );
         return;
       }
     } on Object catch (error) {
@@ -288,10 +297,12 @@ class VaultEntriesNotifier extends AsyncNotifier<List<VaultEntry>> {
     );
     for (final alert in alerts) {
       if (alert.kind == VaultIssueKind.weak) {
-        await ref.read(securityNotificationPortProvider).notifyWeakPassword(
-          serviceName: entry.serviceName,
-          reason: alert.body,
-        );
+        await ref
+            .read(securityNotificationPortProvider)
+            .notifyWeakPassword(
+              serviceName: entry.serviceName,
+              reason: alert.body,
+            );
         return;
       }
     }

@@ -29,9 +29,6 @@ class VaultKeyDerivation {
     required List<int> salt,
   }) {
     final pbkdf2 = Pbkdf2.hmacSha256(iterations: iterations, bits: bits);
-    return pbkdf2.deriveKeyFromPassword(
-      password: masterPassword,
-      nonce: salt,
-    );
+    return pbkdf2.deriveKeyFromPassword(password: masterPassword, nonce: salt);
   }
 }

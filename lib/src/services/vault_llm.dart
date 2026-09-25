@@ -12,10 +12,7 @@ abstract final class VaultLlmSpec {
 abstract class VaultLlm {
   Future<bool> get isReady;
 
-  Future<String> complete({
-    required String system,
-    required String user,
-  });
+  Future<String> complete({required String system, required String user});
 }
 
 /// Stub déterministe pour `flutter test` : pas d’appel Gemini.
@@ -33,10 +30,12 @@ class MemoryVaultLlm implements VaultLlm {
     final payload = _firstJsonObject(user);
     final advisor = SecurityAiAdvisor();
     if (user.contains('Question:')) {
-      final question = RegExp(
-        r'Question:\s*(.+)',
-        dotAll: true,
-      ).firstMatch(user)?.group(1)?.trim() ?? '';
+      final question =
+          RegExp(
+            r'Question:\s*(.+)',
+            dotAll: true,
+          ).firstMatch(user)?.group(1)?.trim() ??
+          '';
       return advisor.answer(question, _vaultFacts(payload)).body;
     }
     if (payload.containsKey('length') && !payload.containsKey('entryCount')) {

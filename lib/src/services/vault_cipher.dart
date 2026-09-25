@@ -2,8 +2,10 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
+/// AES-256-GCM : nonce, ciphertext et MAC concaténés.
 class VaultCipher {
-  VaultCipher({AesGcm? algorithm}) : _algorithm = algorithm ?? AesGcm.with256bits();
+  VaultCipher({AesGcm? algorithm})
+    : _algorithm = algorithm ?? AesGcm.with256bits();
 
   final AesGcm _algorithm;
 

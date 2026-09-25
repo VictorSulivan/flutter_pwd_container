@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+/// Fiche du coffre. Le clair n’existe qu’en mémoire, après déverrouillage.
 class VaultEntry {
   const VaultEntry({
     required this.id,

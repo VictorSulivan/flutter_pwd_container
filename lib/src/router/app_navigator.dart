@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'app_routes.dart';
+
 final appNavigatorKey = GlobalKey<NavigatorState>();
 
 void popToPrevious(BuildContext context) {
@@ -8,7 +10,7 @@ void popToPrevious(BuildContext context) {
     context.pop();
     return;
   }
-  context.go('/');
+  context.go(AppRoutes.home);
 }
 
 void openSecurityFromNotification() {
@@ -16,5 +18,5 @@ void openSecurityFromNotification() {
   if (context == null || !context.mounted) {
     return;
   }
-  GoRouter.of(context).push('/security');
+  GoRouter.of(context).push(AppRoutes.security);
 }

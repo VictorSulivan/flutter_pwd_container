@@ -60,7 +60,10 @@ void main() {
     expect(fiche, isNot(contains('s3cret')));
     expect(fiche, isNot(contains('orion')));
     expect(fiche, isNot(contains('GitHub')));
-    expect(cloud.envelope.toFirestoreMetaMap().containsKey('ciphertext'), isFalse);
+    expect(
+      cloud.envelope.toFirestoreMetaMap().containsKey('ciphertext'),
+      isFalse,
+    );
   });
 
   test('create reste ouvert si Firestore refuse l’écriture', () async {
@@ -103,15 +106,21 @@ void main() {
     expect(loaded.single.password, 's3cret');
   });
 
-  test('sans copie locale, un remote HS n’invente pas un coffre vide', () async {
-    final repository = VaultRepository(
-      blobStore: MemoryEncryptedBlobStore(),
-      remote: _FailingVaultRemoteStore(),
-      kdf: VaultKeyDerivation(iterations: 3),
-    );
+  test(
+    'sans copie locale, un remote HS n’invente pas un coffre vide',
+    () async {
+      final repository = VaultRepository(
+        blobStore: MemoryEncryptedBlobStore(),
+        remote: _FailingVaultRemoteStore(),
+        kdf: VaultKeyDerivation(iterations: 3),
+      );
 
-    await expectLater(repository.exists('user-a'), throwsA(isA<StateError>()));
-  });
+      await expectLater(
+        repository.exists('user-a'),
+        throwsA(isA<StateError>()),
+      );
+    },
+  );
 }
 
 class _FailingVaultRemoteStore implements VaultRemoteStore {

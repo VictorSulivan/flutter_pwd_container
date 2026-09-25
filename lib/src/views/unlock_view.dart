@@ -280,7 +280,9 @@ class _MasterField extends StatelessWidget {
         ),
         suffixIcon: IconButton(
           onPressed: onToggleObscure,
-          icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off),
+          icon: Icon(
+            obscure ? Icons.visibility_outlined : Icons.visibility_off,
+          ),
         ),
       ),
     );

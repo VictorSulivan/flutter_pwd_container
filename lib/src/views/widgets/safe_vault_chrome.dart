@@ -143,10 +143,7 @@ class SafeVaultPrimaryButton extends StatelessWidget {
           foregroundColor: const Color(0xFF041018),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           shape: const StadiumBorder(),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         icon: icon ?? const Icon(Icons.lock_open, size: 20),
         label: FittedBox(child: Text(label)),
@@ -175,10 +172,7 @@ class SafeVaultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: AppColors.cardBorder),
       ),
-      child: Padding(
-        padding: padding,
-        child: child,
-      ),
+      child: Padding(padding: padding, child: child),
     );
   }
 }

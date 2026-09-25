@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/vault_providers.dart';
 import '../router/app_navigator.dart';
+import '../router/app_routes.dart';
 import '../services/security_ai_advisor.dart';
 import '../theme/app_theme.dart';
 import 'widgets/safe_vault_chrome.dart';
@@ -140,12 +141,13 @@ class _ActionTile extends StatelessWidget {
             children: [
               TextButton(
                 onPressed: () =>
-                    context.push('/assistant/fiche/${action.entryId}'),
+                    context.push(AppRoutes.assistantFicheOf(action.entryId)),
                 child: const Text('Conseil'),
               ),
               const Spacer(),
               FilledButton(
-                onPressed: () => context.push('/entry/${action.entryId}'),
+                onPressed: () =>
+                    context.push(AppRoutes.entryOf(action.entryId)),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.cyan,
                   foregroundColor: const Color(0xFF041018),

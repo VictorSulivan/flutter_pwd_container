@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../models/vault_entry.dart';
 import '../providers/vault_providers.dart';
 import '../router/app_navigator.dart';
+import '../router/app_routes.dart';
 import '../services/password_health.dart';
 import '../services/pwned_passwords.dart';
 import '../services/security_alerts.dart';
@@ -414,7 +415,9 @@ class _EntryViewState extends ConsumerState<EntryView> {
                                   child: Text(
                                     'Supprimer',
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.error,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .error,
                                     ),
                                   ),
                                 ),
@@ -512,8 +515,9 @@ class _LiveEntryHealth extends StatelessWidget {
                 if (report.entryId != 'draft') ...[
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () =>
-                        context.push('/assistant/fiche/${report.entryId}'),
+                    onPressed: () => context.push(
+                      AppRoutes.assistantFicheOf(report.entryId),
+                    ),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,

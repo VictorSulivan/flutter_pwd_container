@@ -101,6 +101,6 @@ Détail du stockage : [`vault.md`](vault.md). Santé : [`security.md`](security.
 | Déclencher une action (login, logout) | `ref.read` |
 | Recréer le router à chaque event auth | **interdit** (`watch` de `authStateProvider` dans `routerProvider`) |
 
-## Ce qui viendra
+## À ne pas faire
 
-Biométrie. Ne pas mettre le mot de passe en clair dans des logs ni le laisser affiché sans geste utilisateur.
+Ne pas logger un mot de passe, ni le laisser affiché sans geste utilisateur. La biométrie n’est pas dans le projet.

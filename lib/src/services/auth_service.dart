@@ -2,12 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+/// Session Firebase / Google. Aucun secret du coffre ici.
 class AuthRepository {
-  AuthRepository({
-    FirebaseAuth? firebaseAuth,
-    GoogleSignIn? googleSignIn,
-  }) : _auth = firebaseAuth ?? FirebaseAuth.instance,
-       _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
+  AuthRepository({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
+    : _auth = firebaseAuth ?? FirebaseAuth.instance,
+      _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;

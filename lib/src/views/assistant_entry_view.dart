@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/vault_providers.dart';
 import '../router/app_navigator.dart';
+import '../router/app_routes.dart';
 import '../services/security_ai_advisor.dart';
 import '../theme/app_theme.dart';
 import 'widgets/health_score_ring.dart';
@@ -87,23 +88,19 @@ class AssistantEntryView extends ConsumerWidget {
       const SizedBox(height: 4),
       const Text(
         'Bilan en français simple. Le mot de passe n’est pas lu.',
-        style: TextStyle(
-          color: AppColors.muted,
-          fontSize: 14,
-          height: 1.35,
-        ),
+        style: TextStyle(color: AppColors.muted, fontSize: 14, height: 1.35),
       ),
       const SizedBox(height: 18),
       ..._reportCards(entry, advice),
       const SizedBox(height: 20),
       SafeVaultPrimaryButton(
-        onPressed: () => context.push('/entry/${entry.entryId}'),
+        onPressed: () => context.push(AppRoutes.entryOf(entry.entryId)),
         icon: const Icon(Icons.edit_outlined, size: 20),
         label: 'Ouvrir la fiche',
       ),
       const SizedBox(height: 10),
       OutlinedButton(
-        onPressed: () => context.push('/generator'),
+        onPressed: () => context.push(AppRoutes.generator),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.cyan,
           minimumSize: const Size.fromHeight(48),

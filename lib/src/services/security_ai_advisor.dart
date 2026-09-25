@@ -224,11 +224,7 @@ class AiAnswer {
   final String? error;
 
   AiAnswer withError(Object error) {
-    return AiAnswer(
-      question: question,
-      body: body,
-      error: shortAiError(error),
-    );
+    return AiAnswer(question: question, body: body, error: shortAiError(error));
   }
 }
 
@@ -254,7 +250,7 @@ class EntryAdviceSignal {
   final EntryAdviceTone tone;
 }
 
-/// Rapport fiche : squelette Dart (signaux + étapes), paragraphe « en clair » ensuite.
+/// Rapport d’une fiche : verdict, signaux et étapes. Calculé en Dart.
 class EntryAdviceReport {
   const EntryAdviceReport({
     required this.tone,
@@ -289,9 +285,8 @@ class EntryAdviceReport {
   }
 }
 
-/// Compteurs et plan d’action **on-device**.
-/// Le briefing en langage naturel passe par Gemini (`VaultAiAssistant`).
-/// Les mots de passe ne sont jamais lus ici.
+/// Compteurs et plan d’action. Gemini rédige le briefing ; ici on ne lit
+/// jamais les mots de passe.
 class SecurityAiAdvisor {
   static const suggestedQuestions = [
     'Par où commencer ?',
@@ -336,7 +331,9 @@ class SecurityAiAdvisor {
       );
     }
     if (facts.weakCount > 0) {
-      parts.add(_count(facts.weakCount, 'est trop faible', 'sont trop faibles'));
+      parts.add(
+        _count(facts.weakCount, 'est trop faible', 'sont trop faibles'),
+      );
     }
     if (facts.duplicateCount > 0) {
       parts.add(
@@ -475,45 +472,71 @@ class SecurityAiAdvisor {
         question: trimmed,
         body: facts.pwnedCount == 0
             ? 'Aucune fiche du coffre n’est marquée comme fuitée pour le moment. '
-                'Le contrôle Have I Been Pwned se fait sur le téléphone, sans envoyer le secret.'
+                  'Le contrôle Have I Been Pwned se fait sur le téléphone, sans envoyer le secret.'
             : '${_count(facts.pwnedCount, 'est marqué comme fuité', 'sont marqués comme fuités')} '
-                'Priorité : remplace-les, puis active une double authentification sur ces services.',
+                  'Priorité : remplace-les, puis active une double authentification sur ces services.',
       );
     }
-    if (_matches(q, const ['doubl', 'reutil', 'réutil', 'meme secret', 'même secret'])) {
+    if (_matches(q, const [
+      'doubl',
+      'reutil',
+      'réutil',
+      'meme secret',
+      'même secret',
+    ])) {
       return AiAnswer(
         question: trimmed,
         body: facts.duplicateCount == 0
             ? 'Aucun doublon détecté : chaque fiche a une empreinte distincte.'
             : '${_count(facts.duplicateCount, 'est réutilisé', 'sont réutilisés')} '
-                'Un secret unique par fiche empêche une fuite de déverrouiller plusieurs comptes.',
+                  'Un secret unique par fiche empêche une fuite de déverrouiller plusieurs comptes.',
       );
     }
-    if (_matches(q, const ['long', 'court', 'caractere', 'caractère', 'longueur'])) {
+    if (_matches(q, const [
+      'long',
+      'court',
+      'caractere',
+      'caractère',
+      'longueur',
+    ])) {
       return AiAnswer(
         question: trimmed,
         body: facts.entryCount == 0
             ? 'Pas encore de mot de passe à mesurer.'
             : 'Le plus court fait ${facts.shortestLength} caractères, '
-                'le plus long ${facts.longestLength}, '
-                'la moyenne ${facts.averageLength}. '
-                'Vise au moins 16 caractères, quatre types, et aucun mot courant.',
+                  'le plus long ${facts.longestLength}, '
+                  'la moyenne ${facts.averageLength}. '
+                  'Vise au moins 16 caractères, quatre types, et aucun mot courant.',
       );
     }
-    if (_matches(q, const ['vieux', 'ancien', 'age', 'âge', 'renouvel', '90'])) {
+    if (_matches(q, const [
+      'vieux',
+      'ancien',
+      'age',
+      'âge',
+      'renouvel',
+      '90',
+    ])) {
       return AiAnswer(
         question: trimmed,
         body: facts.staleCount == 0
             ? 'Aucun mot de passe n’a dépassé 90 jours sans mise à jour.'
             : '${_count(facts.staleCount, 'a plus de 90 jours', 'ont plus de 90 jours')} '
-                'Le plus ancien a ${facts.oldestDays} jours. '
-                'Commence par la messagerie et les comptes financiers.',
+                  'Le plus ancien a ${facts.oldestDays} jours. '
+                  'Commence par la messagerie et les comptes financiers.',
       );
     }
-    if (_matches(q, const ['commenc', 'urgent', 'priorit', 'quoi faire', 'plan'])) {
+    if (_matches(q, const [
+      'commenc',
+      'urgent',
+      'priorit',
+      'quoi faire',
+      'plan',
+    ])) {
       return AiAnswer(
         question: trimmed,
-        body: '${_nextStep(facts)} Le plan d’action liste les fiches, une par une.',
+        body:
+            '${_nextStep(facts)} Le plan d’action liste les fiches, une par une.',
       );
     }
     if (_matches(q, const [
@@ -554,7 +577,8 @@ class SecurityAiAdvisor {
     return AiBriefing(
       headline: report.verdict,
       body: [
-        for (final signal in report.signals) '${signal.title} : ${signal.detail}',
+        for (final signal in report.signals)
+          '${signal.title} : ${signal.detail}',
         report.why,
       ].join(' '),
       nextStep: report.steps.join(' '),
@@ -700,8 +724,7 @@ class SecurityAiAdvisor {
     if (!leaksChecked) {
       return const EntryAdviceSignal(
         title: 'Fuites publiques',
-        detail:
-            'Pas encore vérifié : pas de réseau. Ce n’est pas un feu vert.',
+        detail: 'Pas encore vérifié : pas de réseau. Ce n’est pas un feu vert.',
         tone: EntryAdviceTone.watch,
       );
     }
@@ -711,7 +734,8 @@ class SecurityAiAdvisor {
           : '';
       return EntryAdviceSignal(
         title: 'Fuites publiques',
-        detail: 'Oui, ce mot de passe circule déjà.$extra Change-le tout de suite.',
+        detail:
+            'Oui, ce mot de passe circule déjà.$extra Change-le tout de suite.',
         tone: EntryAdviceTone.urgent,
       );
     }
@@ -726,8 +750,7 @@ class SecurityAiAdvisor {
     if (facts.duplicate) {
       return const EntryAdviceSignal(
         title: 'Unicité',
-        detail:
-            'Le même mot de passe est encore utilisé sur une autre fiche du coffre.',
+        detail: 'Le même mot de passe est encore utilisé sur une autre fiche du coffre.',
         tone: EntryAdviceTone.urgent,
       );
     }
@@ -771,8 +794,7 @@ class SecurityAiAdvisor {
     if (facts.stale) {
       return EntryAdviceSignal(
         title: 'Dernier changement',
-        detail:
-            'Pas modifié depuis ${facts.ageDays} jours (seuil : 90 jours).',
+        detail: 'Pas modifié depuis ${facts.ageDays} jours (seuil : 90 jours).',
         tone: EntryAdviceTone.watch,
       );
     }
@@ -837,16 +859,36 @@ class SecurityAiAdvisor {
 
   bool isGuidedQuestion(String question) {
     final q = _normalize(question);
-    return _matches(q, const [
-          'fuite',
-          'pwned',
-          'leak',
-          'compromis',
+    return _matches(q, const ['fuite', 'pwned', 'leak', 'compromis']) ||
+        _matches(q, const [
+          'doubl',
+          'reutil',
+          'réutil',
+          'meme secret',
+          'même secret',
         ]) ||
-        _matches(q, const ['doubl', 'reutil', 'réutil', 'meme secret', 'même secret']) ||
-        _matches(q, const ['long', 'court', 'caractere', 'caractère', 'longueur']) ||
-        _matches(q, const ['vieux', 'ancien', 'age', 'âge', 'renouvel', '90']) ||
-        _matches(q, const ['commenc', 'urgent', 'priorit', 'quoi faire', 'plan']) ||
+        _matches(q, const [
+          'long',
+          'court',
+          'caractere',
+          'caractère',
+          'longueur',
+        ]) ||
+        _matches(q, const [
+          'vieux',
+          'ancien',
+          'age',
+          'âge',
+          'renouvel',
+          '90',
+        ]) ||
+        _matches(q, const [
+          'commenc',
+          'urgent',
+          'priorit',
+          'quoi faire',
+          'plan',
+        ]) ||
         _matches(q, const [
           'vois',
           'donnee',
@@ -871,7 +913,9 @@ class SecurityAiAdvisor {
     if (question.length < 8) {
       return false;
     }
-    if (_isVaultQuestion(question.toLowerCase().replaceAll(RegExp(r'\s+'), ' '))) {
+    if (_isVaultQuestion(
+      question.toLowerCase().replaceAll(RegExp(r'\s+'), ' '),
+    )) {
       return false;
     }
     return true;

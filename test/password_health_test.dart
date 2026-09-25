@@ -40,14 +40,11 @@ void main() {
   });
 
   test('détecte les doublons sans exposer le secret', () {
-    final health = PasswordHealthAnalyzer().analyze(
-      [
-        analyzer.entry('GitHub', 'reused-secret-42'),
-        analyzer.entry('GitLab', 'reused-secret-42'),
-        analyzer.entry('Figma', 'Vg7#kL92mQp!xR4s'),
-      ],
-      now: now,
-    );
+    final health = PasswordHealthAnalyzer().analyze([
+      analyzer.entry('GitHub', 'reused-secret-42'),
+      analyzer.entry('GitLab', 'reused-secret-42'),
+      analyzer.entry('Figma', 'Vg7#kL92mQp!xR4s'),
+    ], now: now);
     expect(health.duplicateCount, 2);
     expect(health.robustCount, 1);
     expect(
@@ -59,19 +56,16 @@ void main() {
   });
 
   test('un mot de passe trop vieux doit être renouvelé', () {
-    final health = PasswordHealthAnalyzer().analyze(
-      [
-        VaultEntry(
-          id: 'netflix',
-          serviceName: 'Netflix',
-          username: 'user',
-          password: 'Vg7#kL92mQp!xR4s',
-          createdAt: now.subtract(const Duration(days: 200)),
-          updatedAt: now.subtract(const Duration(days: 200)),
-        ),
-      ],
-      now: now,
-    );
+    final health = PasswordHealthAnalyzer().analyze([
+      VaultEntry(
+        id: 'netflix',
+        serviceName: 'Netflix',
+        username: 'user',
+        password: 'Vg7#kL92mQp!xR4s',
+        createdAt: now.subtract(const Duration(days: 200)),
+        updatedAt: now.subtract(const Duration(days: 200)),
+      ),
+    ], now: now);
     expect(health.staleCount, 1);
     expect(health.robustCount, 0);
     expect(health.issues.single.kind, VaultIssueKind.stale);
@@ -91,10 +85,9 @@ void main() {
   });
 
   test('un mot de passe trop court est une urgence', () {
-    final health = PasswordHealthAnalyzer().analyze(
-      [analyzer.entry('AWS', 'abc')],
-      now: now,
-    );
+    final health = PasswordHealthAnalyzer().analyze([
+      analyzer.entry('AWS', 'abc'),
+    ], now: now);
     expect(health.weakCount, 1);
     expect(health.urgentCount, 1);
     expect(health.headline, 'À renforcer');
@@ -142,11 +135,14 @@ void main() {
     expect(health.entries.single.weak, isTrue);
     expect(health.entries.single.stale, isTrue);
     expect(health.entries.single.pwned, isTrue);
-    expect(health.issues.map((issue) => issue.kind), containsAll([
-      VaultIssueKind.pwned,
-      VaultIssueKind.weak,
-      VaultIssueKind.stale,
-    ]));
+    expect(
+      health.issues.map((issue) => issue.kind),
+      containsAll([
+        VaultIssueKind.pwned,
+        VaultIssueKind.weak,
+        VaultIssueKind.stale,
+      ]),
+    );
     expect(health.tip, contains('plusieurs signaux'));
     expect(health.entries.single.score, 0);
     expect(health.entries.single.complexityScore, lessThanOrEqualTo(24));

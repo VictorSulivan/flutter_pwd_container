@@ -51,8 +51,7 @@ class MemoryPwnedPasswords extends PwnedPasswordsLookup {
   }
 }
 
-/// HIBP Pwned Passwords, k-anonymity : SHA-1 et comparaison **sur le téléphone**.
-/// Seuls les 5 premiers caractères du hash hexadécimal quittent l’appareil.
+/// HIBP Pwned Passwords (k-anonymity) : seul le préfixe SHA-1 quitte l’appareil.
 class HibpPwnedPasswords extends PwnedPasswordsLookup {
   HibpPwnedPasswords({
     http.Client? client,

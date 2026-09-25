@@ -56,10 +56,7 @@ class MemorySecurityNotifications implements SecurityNotificationPort {
   }
 }
 
-/// Notification dans la barre du téléphone (même tiroir que les push).
-/// FCM sert à demander la permission Android 13+ et à recevoir un message
-/// distant. Les alertes du coffre sont affichées localement : aucun secret
-/// ne part vers un serveur de push.
+/// Notifications locales. FCM sert à la permission Android 13+ ; aucun secret n’y passe.
 class SystemSecurityNotifications implements SecurityNotificationPort {
   SystemSecurityNotifications([
     FlutterLocalNotificationsPlugin? plugin,
@@ -131,8 +128,8 @@ class SystemSecurityNotifications implements SecurityNotificationPort {
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
-      final androidGranted =
-          await androidPlugin?.requestNotificationsPermission();
+      final androidGranted = await androidPlugin
+          ?.requestNotificationsPermission();
       final enabled = await androidPlugin?.areNotificationsEnabled();
       final granted =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -164,19 +161,11 @@ class SystemSecurityNotifications implements SecurityNotificationPort {
     _listening = true;
     FirebaseMessaging.onMessage.listen((message) {
       final title = message.notification?.title ?? 'SafeVault';
-      final body =
-          message.notification?.body ?? message.data['body'] ?? '';
+      final body = message.notification?.body ?? message.data['body'] ?? '';
       if (body.isEmpty) {
         return;
       }
-      unawaited(
-        _show(
-          _unlockId,
-          'SafeVault',
-          title,
-          body,
-        ),
-      );
+      unawaited(_show(_unlockId, 'SafeVault', title, body));
     });
   }
 
@@ -208,12 +197,7 @@ class SystemSecurityNotifications implements SecurityNotificationPort {
       return;
     }
     await initializePlugin();
-    await _show(
-      _unlockId,
-      'SafeVault',
-      'Santé du coffre',
-      body,
-    );
+    await _show(_unlockId, 'SafeVault', 'Santé du coffre', body);
   }
 
   @override
@@ -231,12 +215,7 @@ class SystemSecurityNotifications implements SecurityNotificationPort {
     );
   }
 
-  Future<void> _show(
-    int id,
-    String title,
-    String subtitle,
-    String body,
-  ) async {
+  Future<void> _show(int id, String title, String subtitle, String body) async {
     try {
       await _plugin.show(
         id: id,

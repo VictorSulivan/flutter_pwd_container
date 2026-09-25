@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../models/vault_entry.dart';
 import '../providers/auth_providers.dart';
 import '../providers/vault_providers.dart';
+import '../router/app_routes.dart';
 import '../theme/app_theme.dart';
 import 'widgets/copy_secret.dart';
 import 'widgets/safe_vault_chrome.dart';
@@ -53,9 +54,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
     });
     final failed = ref.read(vaultSyncErrorProvider) != null;
     if (fromUser && !failed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Coffre synchronisé')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Coffre synchronisé')));
     }
   }
 
@@ -84,7 +84,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
         tooltip: 'Ajouter une fiche',
         backgroundColor: AppColors.cyan,
         foregroundColor: const Color(0xFF041018),
-                        onPressed: () => context.push('/entry/new'),
+        onPressed: () => context.push(AppRoutes.entryNew),
         child: const Icon(Icons.add),
       ),
       body: Stack(
@@ -101,7 +101,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       IconButton(
                         tooltip: 'Santé du coffre',
                         visualDensity: VisualDensity.compact,
-                        onPressed: () => context.push('/security'),
+                        onPressed: () => context.push(AppRoutes.security),
                         icon: Badge(
                           isLabelVisible: health.flaggedCount > 0,
                           label: Text('${health.flaggedCount}'),
@@ -111,7 +111,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       IconButton(
                         tooltip: 'Assistant IA',
                         visualDensity: VisualDensity.compact,
-                        onPressed: () => context.push('/assistant'),
+                        onPressed: () => context.push(AppRoutes.assistant),
                         icon: const Icon(Icons.auto_awesome),
                       ),
                       PopupMenuButton<_HomeMenuAction>(
@@ -119,10 +119,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         onSelected: (action) {
                           switch (action) {
                             case _HomeMenuAction.generate:
-                              context.push('/generator');
+                              context.push(AppRoutes.generator);
                             case _HomeMenuAction.lock:
                               ref.read(vaultEntriesProvider.notifier).lock();
-                              context.go('/unlock');
+                              context.go(AppRoutes.unlock);
                             case _HomeMenuAction.signOut:
                               ref.read(authRepositoryProvider).signOut();
                           }
@@ -147,9 +147,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 ),
                 Expanded(
                   child: entries.when(
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, _) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
@@ -183,9 +182,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                           const SizedBox(height: 12),
                           _SyncButton(
                             syncing: _syncing,
-                            onPressed: () => unawaited(
-                              _syncRemote(fromUser: true),
-                            ),
+                            onPressed: () =>
+                                unawaited(_syncRemote(fromUser: true)),
                           ),
                           const SizedBox(height: 16),
                           if (all.isEmpty)
@@ -219,10 +217,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
 }
 
 class _CloudError extends StatelessWidget {
-  const _CloudError({
-    required this.message,
-    required this.onRetry,
-  });
+  const _CloudError({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
@@ -244,10 +239,7 @@ class _CloudError extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(
-            onPressed: onRetry,
-            child: const Text('Réessayer'),
-          ),
+          TextButton(onPressed: onRetry, child: const Text('Réessayer')),
         ],
       ),
     );
@@ -255,10 +247,7 @@ class _CloudError extends StatelessWidget {
 }
 
 class _SyncButton extends StatelessWidget {
-  const _SyncButton({
-    required this.syncing,
-    required this.onPressed,
-  });
+  const _SyncButton({required this.syncing, required this.onPressed});
 
   final bool syncing;
   final VoidCallback onPressed;
@@ -334,7 +323,7 @@ class _EntryTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => context.push('/entry/${entry.id}'),
+        onTap: () => context.push(AppRoutes.entryOf(entry.id)),
         child: SafeVaultCard(
           borderRadius: 18,
           padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),

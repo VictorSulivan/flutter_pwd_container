@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+/// Enveloppe locale (et méta Firestore) : sel, DEK enveloppée, horodatage.
 class VaultEnvelope {
   const VaultEnvelope({
     required this.version,
@@ -33,7 +34,8 @@ class VaultEnvelope {
 
   factory VaultEnvelope.fromJson(Map<String, dynamic> decoded) {
     final updatedAtRaw = decoded['updatedAt'] as String?;
-    final encrypted = decoded['encryptedEntries'] as String? ??
+    final encrypted =
+        decoded['encryptedEntries'] as String? ??
         decoded['ciphertext'] as String?;
     return VaultEnvelope(
       version: decoded['v'] as int,
@@ -41,9 +43,7 @@ class VaultEnvelope {
       iterations: (decoded['iterations'] as num).toInt(),
       salt: base64Decode(decoded['salt'] as String),
       wrappedDek: base64Decode(decoded['wrappedDek'] as String),
-      ciphertext: encrypted == null
-          ? Uint8List(0)
-          : base64Decode(encrypted),
+      ciphertext: encrypted == null ? Uint8List(0) : base64Decode(encrypted),
       updatedAt: updatedAtRaw == null
           ? unknownUpdatedAt
           : DateTime.parse(updatedAtRaw).toUtc(),
@@ -117,8 +117,7 @@ class VaultPasswordException implements Exception {
 
 class VaultEnvelopeMismatchException implements Exception {
   const VaultEnvelopeMismatchException([
-    this.message =
-        'Le coffre cloud ne correspond pas à celui de cet appareil. Verrouille, puis déverrouille.',
+    this.message = 'Le coffre cloud ne correspond pas à celui de cet appareil. Verrouille, puis déverrouille.',
   ]);
 
   final String message;

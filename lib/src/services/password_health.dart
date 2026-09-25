@@ -112,9 +112,7 @@ class VaultHealthReport {
   final List<EntryHealthReport> entries;
   final DateTime analyzedAt;
 
-  List<VaultIssue> get issues => [
-    for (final entry in entries) ...entry.issues,
-  ];
+  List<VaultIssue> get issues => [for (final entry in entries) ...entry.issues];
 }
 
 /// Analyse locale : aucun mot de passe n’est renvoyé dans le rapport.
@@ -200,8 +198,7 @@ class PasswordHealthAnalyzer {
         score: 100,
         headline: 'Coffre vide',
         subtitle: 'Chiffrement AES-256 actif',
-        tip:
-            'Ajoute des identifiants pour évaluer la complexité, les doublons et l’âge des mots de passe.',
+        tip: 'Ajoute des identifiants pour évaluer la complexité, les doublons et l’âge des mots de passe.',
         robustCount: 0,
         staleCount: 0,
         duplicateCount: 0,
@@ -230,8 +227,8 @@ class PasswordHealthAnalyzer {
         inspectEntry(
           entry,
           strength: strengths[entry.id],
-          siblingCount: byFingerprint[strengths[entry.id]!.fingerprint]!.length -
-              1,
+          siblingCount:
+              byFingerprint[strengths[entry.id]!.fingerprint]!.length - 1,
           now: clock,
           pwnedAppearances: pwnedCounts[entry.id] ?? 0,
         ),
@@ -290,7 +287,8 @@ class PasswordHealthAnalyzer {
   }) {
     final clock = (now ?? DateTime.now()).toUtc();
     final report = strength ?? assess(entry.password, context: entry);
-    final others = siblingCount ??
+    final others =
+        siblingCount ??
         vault.where((candidate) {
           if (candidate.id == entry.id) {
             return false;

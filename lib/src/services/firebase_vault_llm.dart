@@ -4,8 +4,7 @@ import 'package:firebase_ai/firebase_ai.dart';
 
 import 'vault_llm.dart';
 
-/// Gemini via Firebase AI Logic. Aucun secret dans le prompt.
-/// App Check n’est pas requis : le SDK n’attend un jeton que s’il est activé.
+/// Appel Gemini. Le prompt ne doit porter que des compteurs.
 class FirebaseVaultLlm implements VaultLlm {
   const FirebaseVaultLlm();
 
@@ -36,8 +35,7 @@ class FirebaseVaultLlm implements VaultLlm {
       return text;
     } on TimeoutException {
       throw TimeoutException(
-        'Gemini n’a pas répondu en 45 s. App Check n’est pas nécessaire. '
-        'Vérifie AI Logic (Gemini Developer API) et le réseau vers Google.',
+        'Gemini n’a pas répondu. Vérifie le réseau et AI Logic dans Firebase.',
       );
     }
   }

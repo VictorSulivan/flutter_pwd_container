@@ -36,9 +36,7 @@ class SecurityAlert {
 /// Textes d’alerte : service + motif, jamais le secret.
 class SecurityAlerts {
   static List<SecurityAlert> fromReport(VaultHealthReport report) {
-    return [
-      for (final issue in report.issues) SecurityAlert.fromIssue(issue),
-    ];
+    return [for (final issue in report.issues) SecurityAlert.fromIssue(issue)];
   }
 
   static List<SecurityAlert> forDraft({
@@ -130,8 +128,7 @@ class SecurityAlerts {
         '${report.duplicateCount} dupliqué${report.duplicateCount > 1 ? 's' : ''}',
       if (report.weakCount > 0)
         '${report.weakCount} trop fragile${report.weakCount > 1 ? 's' : ''}',
-      if (report.staleCount > 0)
-        '${report.staleCount} à renouveler',
+      if (report.staleCount > 0) '${report.staleCount} à renouveler',
     ];
     return parts.join(', ');
   }

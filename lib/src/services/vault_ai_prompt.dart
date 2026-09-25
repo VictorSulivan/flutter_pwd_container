@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'security_ai_advisor.dart';
 import 'vault_llm.dart';
 
-/// Prompts zero-knowledge : JSON de compteurs, jamais de secrets.
+/// Prompts : JSON de compteurs, jamais de secrets.
 class VaultAiPrompt {
   static const system =
       'Tu es l’assistant SafeVault. Tutoiement, français simple, 2 à 5 phrases. '
@@ -31,7 +31,7 @@ class VaultAiPrompt {
         'N’invente aucun chiffre.';
   }
 
-  /// Feuille de route du conseil fiche : le modèle ne rédige que le paragraphe « en clair ».
+  /// Feuille de route d’une fiche : le modèle rédige seulement le paragraphe.
   static const entrySystem =
       'Tu es l’assistant SafeVault. Tu parles à quelqu’un qui n’est pas expert. '
       'Tu ne reçois JAMAIS de mot de passe, identifiant, URL ni nom de service.\n'
@@ -137,6 +137,7 @@ class VaultAiPrompt {
   }
 }
 
+/// Briefing et questions : Gemini si dispo, sinon le texte Dart.
 class VaultAiAssistant {
   const VaultAiAssistant(this.llm);
 
@@ -196,20 +197,12 @@ class VaultAiAssistant {
       );
       final body = VaultAiPrompt.parseBriefing(
         raw,
-        fallback: AiBriefing(
-          headline: '',
-          body: dart.body,
-          nextStep: '',
-        ),
+        fallback: AiBriefing(headline: '', body: dart.body, nextStep: ''),
       ).body;
       if (body.trim().isEmpty) {
         return dart;
       }
-      return AiAnswer(
-        question: trimmed,
-        body: body,
-        source: AiSource.gemini,
-      );
+      return AiAnswer(question: trimmed, body: body, source: AiSource.gemini);
     } on Object catch (error) {
       return dart.withError(error);
     }

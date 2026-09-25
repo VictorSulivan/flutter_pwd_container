@@ -1,6 +1,6 @@
 # Architecture actuelle
 
-SafeVault (package `flutter_pwd_container`) est un coffre de mots de passe. **Aujourd’hui** : session Google, mot de passe maître, liste de fiches chiffrées, copie Firestore de l’enveloppe.
+SafeVault (package `flutter_pwd_container`) : session Google, mot de passe maître, fiches chiffrées, copie Firestore.
 
 ## Flux de démarrage
 
@@ -37,6 +37,7 @@ sequenceDiagram
 | [`lib/src/theme/app_theme.dart`](../lib/src/theme/app_theme.dart) | Couleurs SafeVault (fond sombre, cyan) |
 | [`lib/src/services/auth_service.dart`](../lib/src/services/auth_service.dart) | `AuthRepository` : appels Firebase / Google, testable |
 | [`lib/src/providers/auth_providers.dart`](../lib/src/providers/auth_providers.dart) | Exposition Riverpod du repository et du stream de session |
+| [`lib/src/router/app_routes.dart`](../lib/src/router/app_routes.dart) | Chemins GoRouter |
 | [`lib/src/router/app_router.dart`](../lib/src/router/app_router.dart) | Routes, garde d’auth, `routerProvider` |
 | [`lib/src/views/login_view.dart`](../lib/src/views/login_view.dart) | Écran Google Sign-In |
 | [`lib/src/views/unlock_view.dart`](../lib/src/views/unlock_view.dart) | Mot de passe maître (créer / déverrouiller) |

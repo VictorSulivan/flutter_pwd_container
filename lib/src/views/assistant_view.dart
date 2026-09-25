@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/vault_providers.dart';
 import '../router/app_navigator.dart';
+import '../router/app_routes.dart';
 import '../services/security_ai_advisor.dart';
 import '../theme/app_theme.dart';
 import 'widgets/safe_vault_chrome.dart';
@@ -37,10 +38,9 @@ class _AssistantViewState extends ConsumerState<AssistantView> {
     }
     setState(() => _asking = true);
     try {
-      final answer = await ref.read(vaultAiAssistantProvider).answer(
-        question,
-        facts,
-      );
+      final answer = await ref
+          .read(vaultAiAssistantProvider)
+          .answer(question, facts);
       if (!mounted) {
         return;
       }
@@ -123,7 +123,7 @@ class _AssistantViewState extends ConsumerState<AssistantView> {
                       ),
                       const SizedBox(height: 12),
                       SafeVaultPrimaryButton(
-                        onPressed: () => context.push('/assistant/plan'),
+                        onPressed: () => context.push(AppRoutes.assistantPlan),
                         icon: const Icon(Icons.checklist_outlined, size: 20),
                         label: 'Voir le plan d’action',
                       ),
@@ -182,7 +182,9 @@ class _AssistantViewState extends ConsumerState<AssistantView> {
                       ],
                       if (_asking) ...[
                         const SizedBox(height: 16),
-                        const _ThinkingCard(label: 'Gemini rédige une réponse…'),
+                        const _ThinkingCard(
+                          label: 'Gemini rédige une réponse…',
+                        ),
                       ],
                     ],
                   ),
@@ -327,10 +329,7 @@ class _BriefingCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             briefing.body,
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.4,
-            ),
+            style: const TextStyle(fontSize: 14, height: 1.4),
           ),
           const SizedBox(height: 14),
           Text(

@@ -11,6 +11,7 @@ import 'vault_remote.dart';
 import 'vault_storage.dart';
 import 'vault_sync.dart';
 
+/// Charge, chiffre et synchronise le coffre pour un `uid`.
 class VaultRepository {
   VaultRepository({
     required this.blobStore,
@@ -67,10 +68,7 @@ class VaultRepository {
     }
 
     final salt = kdf.newSalt();
-    final kek = await kdf.deriveKek(
-      masterPassword: masterPassword,
-      salt: salt,
-    );
+    final kek = await kdf.deriveKek(masterPassword: masterPassword, salt: salt);
     final dek = await cipher.newKey();
     final wrappedDek = await cipher.encrypt(
       await cipher.extractKeyBytes(dek),
@@ -251,7 +249,10 @@ class VaultRepository {
       final fiches = <EncryptedFiche>[
         for (final entry in entries) await _seal(entry),
       ];
-      await cloud.write(userId, RemoteVault(envelope: envelope, fiches: fiches));
+      await cloud.write(
+        userId,
+        RemoteVault(envelope: envelope, fiches: fiches),
+      );
       lastRemoteError = null;
     } on Object catch (error) {
       lastRemoteError = error;

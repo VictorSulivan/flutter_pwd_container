@@ -34,7 +34,10 @@ void main() {
     expect(RegExp(r'[A-Z]').hasMatch(password), isTrue);
     expect(RegExp(r'[a-z]').hasMatch(password), isTrue);
     expect(RegExp(r'[0-9]').hasMatch(password), isTrue);
-    expect(RegExp(r'[!@#\$%^&*()\-_=+\[\]{};:,.<>?]').hasMatch(password), isTrue);
+    expect(
+      RegExp(r'[!@#\$%^&*()\-_=+\[\]{};:,.<>?]').hasMatch(password),
+      isTrue,
+    );
   });
 
   test('refuse zéro type de caractère', () {

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+/// Options du générateur local (`Random.secure()`).
 class PasswordGeneratorOptions {
   const PasswordGeneratorOptions({
     this.length = 16,

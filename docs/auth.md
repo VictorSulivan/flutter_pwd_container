@@ -2,7 +2,7 @@
 
 Objectif actuel : **une identité Firebase**, obtenue via **Google**, qui ouvre ou ferme l’accès aux routes.
 
-Les mots de passe du coffre ne transiteront **jamais** par Firebase Auth. Auth = « qui es-tu ? ». Le mot de passe maître = « qui peut lire le coffre ? ».
+Les mots de passe du coffre ne passent **pas** par Firebase Auth. Auth = « qui es-tu ? ». Le mot de passe maître = « qui peut lire le coffre ? ».
 
 ## Firebase Core
 

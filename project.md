@@ -1,52 +1,45 @@
-Description Complète des Fonctionnalités du Projet
-1. Authentification & Gestion de Session (Firebase Auth)
+# SafeVault — cahier des charges
 
-    Inscription et Connexion Multi-Provider :
+Coffre de mots de passe Flutter / Android. Ce qui est listé ici correspond à **ce qui tourne dans l’app**, sauf la section hors scope.
 
-        Connexion classique par e-mail / mot de passe.
+## 1. Authentification
 
-        Connexion rapide via Google (Gmail) et autres identifiants tiers grâce à Firebase.
+- Connexion Google via Firebase Auth.
+- Pas de formulaire e-mail / mot de passe, pas d’avatar.
+- Auth = identité. Ça n’ouvre pas le coffre.
 
-    Sécurisation de l'Accès :
+## 2. Coffre local
 
-        Déconnexion automatique après inactivité.
+- Fiches : nom du service, URL, identifiant, mot de passe, dates.
+- AES-256-GCM. Le maître dérive une KEK (PBKDF2-HMAC-SHA256, 210 000 itérations) qui enveloppe la DEK.
+- Fichier `vault_<uid>.enc` sur le téléphone. Utilisable hors ligne une fois déverrouillé.
 
-        Déverrouillage optionnel via biométrie (Empreinte digitale / Face ID).
+## 3. Générateur
 
-2. Stockage Local Sécurisé (Chiffrement LocalStorage)
+- Longueur et jeux de caractères (minuscules, majuscules, chiffres, symboles).
+- Copie presse-papier, effacement après 30 secondes.
 
-    Coffre-fort d'Identifiants :
+## 4. Santé et alertes
 
-        Gestion des fiches comptes (Nom du service, URL, Identifiant/E-mail, Mot de passe chiffré, Date de création/modification).
+- Score (longueur, mélange, mots trop simples, doublons SHA-256, âge 90 jours, fuites).
+- Have I Been Pwned : k-anonymity, pas le secret en entier.
+- Bandeau in-app + notification système. Texte = compteurs, jamais le mot de passe.
 
-    Chiffrement Fort en Local :
+## 5. Assistant
 
-        Les secrets sont chiffrés localement (AES-256) sur le téléphone avant écriture dans le stockage local (EncryptedStorage / AsyncStorage).
+- Gemini (Firebase AI) rédige un briefing et répond aux questions.
+- Prompt = JSON de compteurs. Pas de mot de passe, login, URL ni nom de site.
+- Plan d’action et bilan d’une fiche en Dart (les IDs restent sur le téléphone).
+- Sans réseau : repli local.
 
-3. Générateur de Mots de Passe Indépendants
+## 6. Copie cloud
 
-    Création Personnalisée :
+- Firestore : `users/{uid}/enveloppe` + `users/{uid}/fiches/{id}`, ciphertext seulement.
+- Last-write-wins.
 
-        Réglage de la longueur et choix des caractères (majuscules, minuscules, chiffres, symboles).
+## Hors scope
 
-    Copie Sécurisée :
-
-        Copie en un clic avec nettoyage automatique du presse-papier après 30 secondes.
-
-4. Système de Notifications & Alertes de Sécurité (Nouveau)
-
-    Alertes en Temps Réel (In-App & Push) :
-
-        Détection de Similitude / Doublons : Alerte automatique si deux fiches partagent une empreinte/hash identique de mot de passe (sans avoir besoin d'afficher ou de comparer les mots de passe en clair).
-
-        Alerte d'Obsolescence : Notification programmable (ex: tous les 90 ou 180 jours) suggérant d'actualiser les mots de passe des comptes critiques (banque, e-mail principal).
-
-        Alerte de Faiblesse : Notification si un compte nouvellement enregistré utilise une structure jugée trop fragile.
-
-5. Assistant IA : Analyseur de Sécurité (Zero-Knowledge)
-
-    Évaluation Contextuelle Sans Risque :
-
-        L'IA analyse uniquement la métadonnée anonymisée transmise par l'application (ex: "Longueur: 10, Contient des chiffres: Oui, Ancienneté: 200 jours, Doublon détecté: Oui").
-
-        Restitution en Langage Naturel : Génération d'un résumé clair synthétisant les alertes de notification sous forme de conseils bienveillants (ex: "3 de vos comptes principaux partagent la même structure de mot de passe et n'ont pas été modifiés cette année").
+- Biométrie (empreinte / Face ID).
+- Compte Firebase e-mail + mot de passe.
+- API HIBP payante (fuites par e-mail).
+- Push calculé côté serveur (le jeton FCM est enregistré, l’analyse reste locale).

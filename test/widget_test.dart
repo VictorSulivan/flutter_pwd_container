@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pwd_container/src/models/vault_entry.dart';
 import 'package:flutter_pwd_container/src/providers/vault_providers.dart';
-import 'package:flutter_pwd_container/src/services/vault_llm.dart';
 import 'package:flutter_pwd_container/src/services/pwned_passwords.dart';
+import 'package:flutter_pwd_container/src/services/vault_llm.dart';
 import 'package:flutter_pwd_container/src/views/assistant_view.dart';
 import 'package:flutter_pwd_container/src/views/entry_view.dart';
 import 'package:flutter_pwd_container/src/views/generator_view.dart';
@@ -19,9 +19,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _pwnedOverride,
-        child: const MaterialApp(
-          home: LoginView(),
-        ),
+        child: const MaterialApp(home: LoginView()),
       ),
     );
 
@@ -177,21 +175,12 @@ void main() {
 
     expect(find.text('Santé du Coffre'), findsOneWidget);
     expect(find.text('Coffre vide'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Analyse par mot de passe'),
-      200,
-    );
+    await tester.scrollUntilVisible(find.text('Analyse par mot de passe'), 200);
     expect(find.text('Analyse par mot de passe'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Assistant IA'),
-      200,
-    );
+    await tester.scrollUntilVisible(find.text('Assistant IA'), 200);
     expect(find.text('Assistant IA'), findsOneWidget);
     expect(find.text('Rien à analyser pour le moment.'), findsNothing);
-    await tester.scrollUntilVisible(
-      find.text('Analyse locale activée'),
-      200,
-    );
+    await tester.scrollUntilVisible(find.text('Analyse locale activée'), 200);
     expect(find.text('Analyse locale activée'), findsOneWidget);
   });
 
@@ -229,10 +218,7 @@ void main() {
     expect(find.text('Voir le plan d’action'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Tchat'), 200);
     expect(find.text('Tchat'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Que vois-tu exactement ?'),
-      200,
-    );
+    await tester.scrollUntilVisible(find.text('Que vois-tu exactement ?'), 200);
     expect(find.text('Que vois-tu exactement ?'), findsOneWidget);
   });
 }

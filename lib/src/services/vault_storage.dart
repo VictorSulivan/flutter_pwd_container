@@ -1,45 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-abstract class SecureKeyStore {
-  Future<String?> read(String key);
-
-  Future<void> write(String key, String value);
-}
-
-class FlutterSecureKeyStore implements SecureKeyStore {
-  FlutterSecureKeyStore([FlutterSecureStorage? storage])
-    : _storage = storage ?? const FlutterSecureStorage();
-
-  final FlutterSecureStorage _storage;
-
-  @override
-  Future<String?> read(String key) => _storage.read(key: key);
-
-  @override
-  Future<void> write(String key, String value) {
-    return _storage.write(key: key, value: value);
-  }
-}
-
-class MemorySecureKeyStore implements SecureKeyStore {
-  MemorySecureKeyStore([Map<String, String>? values]) : _values = values ?? {};
-
-  final Map<String, String> _values;
-
-  @override
-  Future<String?> read(String key) async => _values[key];
-
-  @override
-  Future<void> write(String key, String value) async {
-    _values[key] = value;
-  }
-}
-
+/// Fichier local `vault_<uid>.enc`.
 abstract class EncryptedBlobStore {
   Future<Uint8List?> read(String userId);
 

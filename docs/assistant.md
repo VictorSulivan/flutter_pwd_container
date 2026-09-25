@@ -1,6 +1,6 @@
 # Assistant IA (Gemini via Firebase)
 
-Zero-knowledge : l’assistant **ne voit jamais un secret**. Gemini (Firebase AI Logic, API Gemini Developer) ne reçoit que des **compteurs**. Aucun mot de passe, identifiant, URL ni nom de service n’est envoyé au modèle. L’inférence a besoin du réseau ; sans réseau, un texte Dart local prend le relais.
+L’assistant ne voit jamais un secret. Gemini (Firebase AI) ne reçoit que des compteurs. Pas de mot de passe, identifiant, URL ni nom de service. Sans réseau, un texte local prend le relais.
 
 ## Modèle
 

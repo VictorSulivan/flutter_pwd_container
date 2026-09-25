@@ -10,9 +10,8 @@ Future<void> copySecretToClipboard(
 }) async {
   await Clipboard.setData(ClipboardData(text: value));
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(copiedMessage)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(copiedMessage)));
   }
   unawaited(_clearClipboardLater(value));
 }

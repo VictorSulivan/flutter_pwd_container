@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/vault_providers.dart';
 import '../router/app_navigator.dart';
+import '../router/app_routes.dart';
 import '../services/password_health.dart';
 import '../services/security_alerts.dart';
 import '../theme/app_theme.dart';
@@ -41,9 +42,8 @@ class SecurityPasswordsView extends ConsumerWidget {
                 ),
                 Expanded(
                   child: entries.when(
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, _) => Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
@@ -192,13 +192,14 @@ class _PasswordHealthTile extends StatelessWidget {
             children: [
               TextButton.icon(
                 onPressed: () =>
-                    context.push('/assistant/fiche/${report.entryId}'),
+                    context.push(AppRoutes.assistantFicheOf(report.entryId)),
                 icon: const Icon(Icons.auto_awesome, size: 18),
                 label: const Text('Conseil IA'),
               ),
               const Spacer(),
               FilledButton(
-                onPressed: () => context.push('/entry/${report.entryId}'),
+                onPressed: () =>
+                    context.push(AppRoutes.entryOf(report.entryId)),
                 style: FilledButton.styleFrom(
                   backgroundColor: report.hasIssue
                       ? AppColors.cyan

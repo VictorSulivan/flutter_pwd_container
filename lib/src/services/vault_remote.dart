@@ -24,10 +24,7 @@ class EncryptedFiche {
     };
   }
 
-  factory EncryptedFiche.fromFirestore(
-    String id,
-    Map<String, dynamic> data,
-  ) {
+  factory EncryptedFiche.fromFirestore(String id, Map<String, dynamic> data) {
     return EncryptedFiche(
       id: id,
       ciphertext: base64Decode(data['ciphertext'] as String),
@@ -37,15 +34,13 @@ class EncryptedFiche {
 }
 
 class RemoteVault {
-  const RemoteVault({
-    required this.envelope,
-    required this.fiches,
-  });
+  const RemoteVault({required this.envelope, required this.fiches});
 
   final VaultEnvelope envelope;
   final List<EncryptedFiche> fiches;
 }
 
+/// Copie cloud : enveloppe + fiches déjà chiffrées.
 abstract class VaultRemoteStore {
   Future<RemoteVault?> read(String userId);
 
@@ -106,13 +101,11 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
   Future<RemoteVault?> read(String userId) async {
     await _ensureAuth(userId);
     try {
-      final meta = await _enveloppe(userId).get(
-        const GetOptions(source: Source.server),
-      );
+      final meta = await _enveloppe(userId)
+          .get(const GetOptions(source: Source.server));
       if (meta.exists && meta.data() != null && meta.data()!.isNotEmpty) {
-        final fichesSnap = await _fiches(userId).get(
-          const GetOptions(source: Source.server),
-        );
+        final fichesSnap = await _fiches(userId)
+            .get(const GetOptions(source: Source.server));
         return RemoteVault(
           envelope: VaultEnvelope.fromFirestoreMap(meta.data()!),
           fiches: [
@@ -178,10 +171,7 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
       }
       final keep = {for (final fiche in vault.fiches) fiche.id};
       final batch = _firestore.batch();
-      batch.set(user, {
-        'kind': 'coffre',
-        'uid': userId,
-      });
+      batch.set(user, {'kind': 'coffre', 'uid': userId});
       batch.set(enveloppe, vault.envelope.toFirestoreMetaMap());
       for (final fiche in vault.fiches) {
         batch.set(fiches.doc(fiche.id), fiche.toFirestoreMap());
@@ -207,9 +197,7 @@ class FirestoreVaultRemoteStore implements VaultRemoteStore {
         'Firestore wrote users/$userId/enveloppe/actuelle + ${vault.fiches.length} fiche(s)',
       );
     } on FirebaseException catch (error) {
-      throw StateError(
-        'users/$userId ${error.code}: ${error.message}',
-      );
+      throw StateError('users/$userId ${error.code}: ${error.message}');
     }
   }
 }

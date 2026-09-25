@@ -93,11 +93,7 @@ void main() {
     final port = MemorySecurityNotifications();
     expect(await port.prepare(), isTrue);
     final dirty = PasswordHealthAnalyzer().analyze([
-      VaultEntry.create(
-        serviceName: 'AWS',
-        username: 'a',
-        password: 'abc',
-      ),
+      VaultEntry.create(serviceName: 'AWS', username: 'a', password: 'abc'),
     ]);
     await port.sync(dirty);
     expect(port.lastBody, isNotNull);
